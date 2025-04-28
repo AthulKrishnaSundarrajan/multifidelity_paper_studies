@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     n_OF_runs = len(fst_files)
 
-    run_sens_study = True
+    run_sens_study = False
     
     bounds = np.array([0.10, 0.3])
     desvars = {'pc_omega' : np.array([0.2])}

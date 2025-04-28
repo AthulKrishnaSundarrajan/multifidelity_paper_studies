@@ -6,6 +6,8 @@ from models.prod_functions import LFTurbine,HFTurbine
 from models.mf_controls import MF_Turbine,compute_outputs,valid_extension
 from weis.multifidelity.methods.trust_region import SimpleTrustRegion
 from weis.glue_code.mpi_tools import MPI
+import pickle
+import time as timer
 
 if __name__ == '__main__':
 
@@ -81,7 +83,7 @@ if __name__ == '__main__':
         
         mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options)
         bounds = {'pc_omega' : np.array([[0.10, 0.3]])}
-        desvars = {'pc_omega' : np.array([0.2])}
+        desvars = {'pc_omega' : np.array([0.25])}
 
         model_low = LFTurbine(desvars,  mf_turb)
         model_high = HFTurbine(desvars, mf_turb)
@@ -95,12 +97,31 @@ if __name__ == '__main__':
             disp=2,
             trust_radius=0.5,
             num_initial_points=3,
+            radius_tol = 1e-3,
+            optimization_log = True
         )
 
         trust_region.add_objective("TwrBsMyt_DEL", scaler=1e-5)
-        trust_region.add_constraint("GenSpeed_Max", upper=9.)
-        
-        trust_region.optimize(plot=False, num_basinhop_iterations=0)
+        trust_region.add_constraint("GenSpeed_Max", upper=1.2)
+        # trust_region.construct_approximations(interp_method = 'smt')
+        # approx_functions = trust_region.approximation_functions
+
+
+        # dv = trust_region.design_vectors
+        # outputs_low = trust_region.outputs_low
+        # outputs_high = trust_region.outputs_high
+
+        # results_dict = {'dv':dv,'outputs_low':outputs_low,'outputs_high':outputs_high}
+
+        # with open('approx_func_test.pkl','wb') as handle:
+        #     pickle.dump(results_dict,handle)
+
+
+        t1 = timer.time()
+        trust_region.optimize(plot=False, num_basinhop_iterations=0,num_iterations = 1)
+        t2 = timer.time()
+
+
 
 
     #---------------------------------------------------

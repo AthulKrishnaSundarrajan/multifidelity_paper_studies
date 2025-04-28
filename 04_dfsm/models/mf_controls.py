@@ -356,7 +356,7 @@ def compute_outputs(cruncher):
 
         outputs = {}
         outputs['TwrBsMyt_DEL'] = np.sum(np.array(cruncher.dels['TwrBsMyt'])*prob)
-        outputs['GenSpeed_Max'] = np.max(np.array(cruncher.summary_stats['GenSpeed']['max']))
+        outputs['GenSpeed_Max'] = np.max(np.array(cruncher.summary_stats['GenSpeed']['max']))/7.5
         
         
 

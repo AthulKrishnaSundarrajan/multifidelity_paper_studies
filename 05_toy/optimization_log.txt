@@ -1,0 +1,227 @@
+Optimization Log
+
+================
+Iteration number : 1
+x_new: 0.1099, 2.5000
+LF Model Eval : 145
+HF Model Eval : 12
+Iteration number : 1
+Actual Obj value:1.162471249558501
+Predicted Obj value:1.1361575238058876
+Trust region expanded
+================
+Iteration number : 2
+x_new: 0.1825, 1.5000
+LF Model Eval : 324
+HF Model Eval : 13
+Iteration number : 2
+Actual Obj value:1.168501966106526
+Predicted Obj value:1.1559923395981995
+Trust region contracted
+================
+Iteration number : 3
+x_new: 0.1089, 1.2500
+LF Model Eval : 451
+HF Model Eval : 14
+Iteration number : 3
+Actual Obj value:1.1958987349865442
+Predicted Obj value:1.1513671176811187
+Trust region contracted
+================
+Iteration number : 4
+x_new: 0.1714, 1.3125
+LF Model Eval : 499
+HF Model Eval : 15
+Iteration number : 4
+Actual Obj value:1.1596654869608811
+Predicted Obj value:1.1697981709876593
+Trust region expanded
+================
+Iteration number : 5
+x_new: 0.2102, 1.1875
+LF Model Eval : 655
+HF Model Eval : 16
+Iteration number : 5
+Actual Obj value:1.1518914254151107
+Predicted Obj value:1.1491915972010103
+Trust region expanded
+================
+Iteration number : 6
+x_new: 0.2045, 1.1558
+LF Model Eval : 797
+HF Model Eval : 17
+Iteration number : 6
+Actual Obj value:1.1504300638559202
+Predicted Obj value:1.1509716365325784
+Trust region expanded
+================
+Iteration number : 7
+x_new: 0.2808, 1.2182
+LF Model Eval : 946
+HF Model Eval : 18
+Iteration number : 7
+Actual Obj value:1.1604123635432082
+Predicted Obj value:1.1488351402414765
+Trust region contracted
+================
+Iteration number : 8
+x_new: 0.2183, 1.1557
+LF Model Eval : 992
+HF Model Eval : 19
+Iteration number : 8
+Actual Obj value:1.1522009751644269
+Predicted Obj value:1.1541828065956736
+Trust region expanded
+================
+Iteration number : 9
+x_new: 0.2040, 1.1222
+LF Model Eval : 1151
+HF Model Eval : 20
+Iteration number : 9
+Actual Obj value:1.14991127268731
+Predicted Obj value:1.1501665336362477
+Trust region expanded
+================
+Iteration number : 10
+x_new: 0.2033, 1.1047
+LF Model Eval : 1293
+HF Model Eval : 21
+Iteration number : 10
+Actual Obj value:1.149833127547607
+Predicted Obj value:1.149831061070484
+Trust region expanded
+================
+Iteration number : 11
+x_new: 0.2037, 1.1035
+LF Model Eval : 1428
+HF Model Eval : 22
+Iteration number : 11
+Actual Obj value:1.1498522272992917
+Predicted Obj value:1.1498312895564187
+Trust region contracted
+================
+Iteration number : 12
+x_new: 0.2023, 1.1118
+LF Model Eval : 1564
+HF Model Eval : 23
+Iteration number : 12
+Actual Obj value:1.1497945898337376
+Predicted Obj value:1.149805925601026
+Trust region expanded
+================
+Iteration number : 13
+x_new: 0.2019, 1.1141
+LF Model Eval : 1670
+HF Model Eval : 24
+Iteration number : 13
+Actual Obj value:1.149788903234602
+Predicted Obj value:1.1497915197582076
+Trust region expanded
+================
+Iteration number : 14
+x_new: 0.2010, 1.1125
+LF Model Eval : 1776
+HF Model Eval : 25
+Iteration number : 14
+Actual Obj value:1.1497690776813387
+Predicted Obj value:1.1497787464866835
+Trust region expanded
+================
+Iteration number : 15
+x_new: 0.2006, 1.1103
+LF Model Eval : 1917
+HF Model Eval : 26
+Iteration number : 15
+Actual Obj value:1.1497630762443685
+Predicted Obj value:1.149765094573932
+Trust region expanded
+================
+Iteration number : 16
+x_new: 0.1999, 1.1112
+LF Model Eval : 2015
+HF Model Eval : 27
+Iteration number : 16
+Actual Obj value:1.1497618401990153
+Predicted Obj value:1.1497603071560896
+Trust region expanded
+================
+Iteration number : 17
+x_new: 0.2001, 1.1106
+LF Model Eval : 2113
+HF Model Eval : 28
+Iteration number : 17
+Actual Obj value:1.1497614793982112
+Predicted Obj value:1.149761381588702
+Trust region expanded
+================
+Iteration number : 18
+x_new: 0.2314, 1.1419
+LF Model Eval : 2219
+HF Model Eval : 29
+Iteration number : 18
+Actual Obj value:1.154477048056886
+Predicted Obj value:1.1490252819483557
+Trust region contracted
+================
+Iteration number : 19
+x_new: 0.2236, 1.1497
+LF Model Eval : 2274
+HF Model Eval : 30
+Iteration number : 19
+Actual Obj value:1.153059618285939
+Predicted Obj value:1.1526589277535486
+Trust region expanded
+================
+Iteration number : 20
+x_new: 0.2079, 1.1341
+LF Model Eval : 2317
+HF Model Eval : 31
+Iteration number : 20
+Actual Obj value:1.1503357169677295
+Predicted Obj value:1.1504011177874574
+Trust region expanded
+================
+Iteration number : 21
+x_new: 0.2001, 1.1103
+LF Model Eval : 2443
+HF Model Eval : 32
+Iteration number : 21
+Actual Obj value:1.1497614286368834
+Predicted Obj value:1.1497614435736203
+Trust region expanded
+================
+Iteration number : 22
+x_new: 0.2001, 1.1102
+LF Model Eval : 2601
+HF Model Eval : 33
+Iteration number : 22
+Actual Obj value:1.1497614281183326
+Predicted Obj value:1.1497614279948507
+Trust region expanded
+================
+Iteration number : 23
+x_new: 0.2001, 1.1102
+LF Model Eval : 2777
+HF Model Eval : 34
+Iteration number : 23
+Actual Obj value:1.1497614281177508
+Predicted Obj value:1.1497614279874715
+Trust region contracted
+================
+Iteration number : 24
+x_new: 0.2001, 1.1102
+LF Model Eval : 2972
+HF Model Eval : 35
+Iteration number : 24
+Actual Obj value:1.149761428119185
+Predicted Obj value:1.1497614279888801
+Trust region contracted
+================
+Iteration number : 25
+x_new: 0.2001, 1.1102
+LF Model Eval : 3098
+HF Model Eval : 36
+Iteration number : 25
+Actual Obj value:1.1497614281191917
+Predicted Obj value:1.149761428000121
+Trust region contracted
