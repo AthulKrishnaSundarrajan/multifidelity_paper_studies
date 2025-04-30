@@ -25,7 +25,7 @@ from rosco.toolbox import control_interface as ROSCO_ci
 from rosco.toolbox.utilities import write_DISCON,read_DISCON
 from rosco.toolbox.inputs.validation import load_rosco_yaml
 from rosco import discon_lib_path
-from openfast_io.turbsim_file   import TurbSimFile
+from weis.aeroelasticse.turbsim_file   import TurbSimFile
 
 
 # pCrunch Modules and instantiation
