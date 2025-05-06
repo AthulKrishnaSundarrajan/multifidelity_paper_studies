@@ -8,7 +8,7 @@ import os
 
 
 bounds = np.array([0.10, 0.3])
-desvars = {'pc_omega' : np.array([0.2])}
+desvars = {'pc_omega' : np.array([0.157])}
 
  # get path to this directory
 this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -22,7 +22,7 @@ reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
 reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt']
 
 # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-OF_dir = this_dir + os.sep + 'rated-16' + os.sep + 'openfast_runs'
+OF_dir = this_dir + os.sep + 'transition2' + os.sep + 'openfast_runs'
 
 # 3. ROSCO yaml file
 rosco_yaml = this_dir + os.sep + 'IEA-15-240-RWT-UMaineSemi_ROSCO.yaml'
@@ -63,12 +63,12 @@ for key in desvars:
     
 s = time()
 
-p.driver = om.pyOptSparseDriver()
-p.driver.options['optimizer'] = "SLSQP"
+p.driver = om.ScipyOptimizeDriver()
+p.driver.options['optimizer'] = "COBYLA"
 
 for key in desvars:
     model.add_design_var(key, lower=bounds[0], upper=bounds[1])
-model.add_constraint('GenSpeed_Max', upper=9.)
+model.add_constraint('GenSpeed_Max', upper=1.2)
 model.add_objective('TwrBsMyt_DEL', ref=1.e5)
 
 p.driver.recording_options['includes'] = ['*']
@@ -86,3 +86,5 @@ p.driver.add_recorder(recorder)
 
 p.setup(mode='fwd')
 p.run_driver()
+
+breakpoint()

@@ -13,11 +13,7 @@ Functions for running linear and nonlinear control parameter optimizations
 - Process DEL, other measures for cost function
 
 '''
-from openfast_io.FAST_reader   import InputReader_OpenFAST as reader
-
-from pCrunch import Crunch,FatigueParams, AeroelasticOutput
-
-
+from weis.aeroelasticse.FAST_reader    import InputReader_OpenFAST as reader
 
 from rosco.toolbox import controller as ROSCO_controller
 from rosco.toolbox import turbine as ROSCO_turbine
@@ -319,8 +315,8 @@ class Level3_Turbine(object):
     def compute(self,omega_pc):
 
         self.mf_turb.tune_and_write_files(omega_pc)
-        cruncher,_,_ = self.mf_turb.run_openfast(overwrite_flag = True)
-        outputs = compute_outputs(cruncher)
+        summary_stats,DELs,_ = self.mf_turb.run_openfast(overwrite_flag = True)
+        outputs = compute_outputs(summary_stats,DELs)
 
         return outputs
 
@@ -334,29 +330,33 @@ class DFSM_Turbine(object):
     def compute(self,omega_pc):
         
         self.mf_turb.tune_and_write_files(omega_pc)
-        cruncher,_,_ = self.mf_turb.run_dfsm()
+        summary_stats,DELs,chan_time_list = self.mf_turb.run_dfsm()
 
-        outputs = compute_outputs(cruncher)
+        outputs = compute_outputs(summary_stats,DELs)
 
         return outputs
 
-def compute_outputs(cruncher):
+def compute_outputs(summary_stats,DELs):
     
-    prob = cruncher.prob
-    n_cases = len(prob)
+    w_mean = summary_stats['RtVAvgxh']['mean']
+    n_cases  = len(w_mean)
+
+    from pCrunch import PowerProduction
+    pp = PowerProduction('I')
+    prob = pp.prob_WindDist(w_mean, disttype='pdf')
+    prob/=prob.sum()
 
     # save outputs
-
     if n_cases == 1:
         outputs = {}
-        outputs['TwrBsMyt_DEL']     = cruncher.dels['TwrBsMyt'].iloc[0]
-        outputs['GenSpeed_Max']     = cruncher.summary_stats['GenSpeed']['max'].iloc[0]
+        outputs['TwrBsMyt_DEL']     = DELs['TwrBsMyt'].iloc[0]
+        outputs['GenSpeed_Max']     = summary_stats['GenSpeed']['max'].iloc[0]/7.5
 
     else:
 
         outputs = {}
-        outputs['TwrBsMyt_DEL'] = np.sum(np.array(cruncher.dels['TwrBsMyt'])*prob)
-        outputs['GenSpeed_Max'] = np.max(np.array(cruncher.summary_stats['GenSpeed']['max']))
+        outputs['TwrBsMyt_DEL'] = np.sum(np.array(DELs['TwrBsMyt'])*prob)
+        outputs['GenSpeed_Max'] = np.max(np.array(summary_stats['GenSpeed']['max']))/7.5
         
         
 

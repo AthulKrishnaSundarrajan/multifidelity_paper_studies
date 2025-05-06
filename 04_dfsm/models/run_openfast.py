@@ -4,7 +4,12 @@ import shutil
 
 from weis.aeroelasticse.FAST_wrapper import FAST_wrapper
 from weis.dfsm.dfsm_utilities import compile_dfsm_results
-from pCrunch import Crunch,FatigueParams, AeroelasticOutput,read
+from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
+from pCrunch.io import OpenFASTOutput,load_FAST_out
+import fatpack
+
+magnitude_channels = {'TwrBsM': [ 'TwrBsMyt']}
+fatigue_channels = {'TwrBsM': FatigueParams(slope=4)}
 
 of_path = os.path.realpath( shutil.which('openfast') )
 
@@ -22,7 +27,7 @@ def run_wrapper(fst_file,overwrite_flag):
 
     wrapper.FAST_directory = FAST_directory
     wrapper.FAST_InputFile = FAST_InputFile
-
+    
     FAST_Output = os.path.join(FAST_directory, FAST_InputFile[:-3]+'outb')
 
     output_flag = (os.path.exists(FAST_Output))
@@ -42,7 +47,7 @@ def run_wrapper(fst_file,overwrite_flag):
         print('OpenFAST not executed: Output file "%s" already exists. To overwrite this output file, set "overwrite_outfiles = True".'%FAST_Output)
 
 
-    output = read(FAST_Output,fatigue_channels = fatigue_channels)
+    output = load_FAST_out(FAST_Output)[0]
 
     return output
 
@@ -69,7 +74,7 @@ def evaluate_multi(case_data):
 
 def run_mpi(case_data_all,mpi_options):
 
-    from openmdao.utils.mpi import MPI
+    from mpi4py import MPI
 
     # mpi comm management
     comm = MPI.COMM_WORLD
@@ -160,13 +165,29 @@ def run_openfast(fst_files,reqd_states,reqd_controls,reqd_outputs,mpi_options,GB
         chan_time_list.append(OutData)
 
         # get output
-        ae_output = AeroelasticOutput(OutData, dlc = 'openfast_'+str(i_case),  fatigue_channels = fatigue_channels )
+        ae_output = OpenFASTOutput.from_dict(OutData,'openfast_'+str(i_case),magnitude_channels = magnitude_channels)
 
         ae_output_list.append(ae_output)
 
-    cruncher = Crunch(outputs = [],lean = True)
+    loads_analysis = LoadsAnalysis(
+            outputs = [],
+            magnitude_channels = magnitude_channels,
+            fatigue_channels = fatigue_channels
+        ) 
+
+    # Collect outputs
+    ss = {}
+    et = {}
+    dl = {}
+    dam = {}
 
     for output in ae_output_list:
-        cruncher.add_output(output)
+        _name, _ss, _et, _dl, _dam = loads_analysis._process_output(output)
+        ss[_name] = _ss
+        et[_name] = _et
+        dl[_name] = _dl
+        dam[_name] = _dam
 
-    return cruncher,ae_output_list,chan_time_list
+    summary_stats, _, DELs, _ = loads_analysis.post_process(ss, et, dl, dam)
+
+    return summary_stats,DELs,chan_time_list

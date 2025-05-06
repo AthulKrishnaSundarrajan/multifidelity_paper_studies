@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     n_OF_runs = len(fst_files)
 
-    run_sens_study = False
+    run_sens_study = True
     
     bounds = np.array([0.10, 0.3])
     desvars = {'pc_omega' : np.array([0.2])}
@@ -93,12 +93,12 @@ if __name__ == '__main__':
 
         if run_sens_study:
 
-            npts = 5
+            npts = 1
 
             twrbsmyt_del = np.zeros((npts,2))
             genspeed_max = np.zeros((npts,2))
 
-            pc_omega = np.linspace(bounds[0],bounds[-1],npts)
+            pc_omega = [0.106] #np.linspace(bounds[0],bounds[-1],npts)
             print(pc_omega)
 
             for ipt in range(npts):
@@ -142,13 +142,13 @@ if __name__ == '__main__':
 
         else:
 
-            cruncher_dfsm,ae_output_list_dfsm,chan_time_list_dfsm = mf_controls.run_dfsm()
+            sum_stats_dfsm,DELs_dfsm,chan_time_list_dfsm = mf_controls.run_dfsm()
 
-            outputs_dfsm = compute_outputs(cruncher_dfsm)
+            outputs_dfsm = compute_outputs(sum_stats_dfsm,DELs_dfsm)
             print(outputs_dfsm)
 
-            cruncher_of,ae_output_list_of,chan_time_list_of = mf_controls.run_openfast()
-            outputs_of = compute_outputs(cruncher_of)
+            sum_stats_of,DELs_of,chan_time_list_of = mf_controls.run_openfast()
+            outputs_of = compute_outputs(sum_stats_of,DELs_of)
             print(outputs_of)
 
             i_fig = 0
@@ -161,8 +161,8 @@ if __name__ == '__main__':
                 ax[0].plot(ct_of['Time'],ct_of['RtVAvgxh'])
                 ax[0].plot(ct_dfsm['Time'],ct_dfsm['RtVAvgxh'])
 
-                ax[1].plot(ct_of['Time'],ct_of['GenSpeed'])
-                ax[1].plot(ct_dfsm['Time'],ct_dfsm['GenSpeed'])
+                ax[1].plot(ct_of['Time'],ct_of['TwrBsMyt'])
+                ax[1].plot(ct_dfsm['Time'],ct_dfsm['TwrBsMyt'])
 
                 ax[2].plot(ct_of['Time'],ct_of['BldPitch1'])
                 ax[2].plot(ct_dfsm['Time'],ct_dfsm['BldPitch1'])

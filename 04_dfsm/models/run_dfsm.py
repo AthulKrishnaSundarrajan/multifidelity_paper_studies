@@ -3,7 +3,12 @@ import time as timer
 from rosco.toolbox import control_interface as ROSCO_ci
 from weis.dfsm.ode_algorithms import RK4,ABM4
 from weis.dfsm.dfsm_utilities import compile_dfsm_results
-from pCrunch import Crunch,FatigueParams, AeroelasticOutput
+from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
+from pCrunch.io import OpenFASTOutput
+import fatpack
+
+magnitude_channels = {'TwrBsM': [ 'TwrBsMyt']}
+fatigue_channels = {'TwrBsM': FatigueParams(slope=4)}
 
 
 def evaluate_multi(case_data):
@@ -65,7 +70,7 @@ def run_serial(case_data_all):
 
 def run_mpi(case_data_all,mpi_options):
 
-    from openmdao.utils.mpi import MPI
+    from mpi4py import MPI
 
     # mpi comm management
     comm = MPI.COMM_WORLD
@@ -120,8 +125,7 @@ def run_mpi(case_data_all,mpi_options):
 
 
 def run_dfsm(case_data_all,reqd_states,reqd_controls,reqd_outputs,mpi_options,GB_ratio = 1, TStart = 0):
-    print('gets here')
-
+    
     if mpi_options['mpi_run']:
         # evaluate the closed loop simulations in parallel using MPI
         sim_outputs = run_mpi(case_data_all,mpi_options)
@@ -152,16 +156,32 @@ def run_dfsm(case_data_all,reqd_states,reqd_controls,reqd_outputs,mpi_options,GB
         chan_time_list.append(OutData)
 
         # get output
-        ae_output = AeroelasticOutput(OutData, dlc = 'dfsm_'+str(i_case),  fatigue_channels = fatigue_channels )
+        ae_output = OpenFASTOutput.from_dict(OutData,'dfsm_'+str(i_case),magnitude_channels = magnitude_channels)
 
         ae_output_list.append(ae_output)
 
-    cruncher = Crunch(outputs = [],lean = True)
+    loads_analysis = LoadsAnalysis(
+            outputs = [],
+            magnitude_channels = magnitude_channels,
+            fatigue_channels = fatigue_channels
+        ) 
+
+    # Collect outputs
+    ss = {}
+    et = {}
+    dl = {}
+    dam = {}
 
     for output in ae_output_list:
-        cruncher.add_output(output)
+        _name, _ss, _et, _dl, _dam = loads_analysis._process_output(output)
+        ss[_name] = _ss
+        et[_name] = _et
+        dl[_name] = _dl
+        dam[_name] = _dam
 
-    return cruncher,ae_output_list,chan_time_list
+    summary_stats, _, DELs, _ = loads_analysis.post_process(ss, et, dl, dam)
+
+    return summary_stats,DELs,chan_time_list
 
 
 

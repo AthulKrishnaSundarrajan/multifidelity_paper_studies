@@ -16,7 +16,7 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'transition' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'transition2' + os.sep + 'openfast_runs'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
 
@@ -94,11 +94,13 @@ if __name__ == '__main__':
             bounds,
             disp=2,
             trust_radius=0.5,
-            num_initial_points=3,
+            num_initial_points=2,
+            optimization_log = True,
+            log_filename = 'optimization_log.txt'
         )
 
         trust_region.add_objective("TwrBsMyt_DEL", scaler=1e-5)
-        trust_region.add_constraint("GenSpeed_Max", upper=9.)
+        trust_region.add_constraint("GenSpeed_Max", upper=1.2)
         
         trust_region.optimize(plot=False, num_basinhop_iterations=0)
 
