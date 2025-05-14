@@ -8,7 +8,7 @@ import os
 
 
 bounds = np.array([0.10, 0.3])
-desvars = {'pc_omega' : np.array([0.2])}
+desvars = {'omega_pc' : np.array([0.2])}
 
  # get path to this directory
 this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -17,12 +17,12 @@ this_dir = os.path.dirname(os.path.realpath(__file__))
  # 1. DFSM file and the model detials
 dfsm_file = this_dir + os.sep + 'dfsm_fowt_1p6.pkl'
 
-reqd_states = ['PtfmPitch','TTDspFA','GenSpeed']
+reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
 reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
 reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt']
 
 # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-OF_dir = this_dir + os.sep + 'rated-16' + os.sep + 'openfast_runs'
+OF_dir = this_dir + os.sep + 'outputs/near_rated_test' + os.sep + 'openfast_runs'
 
 # 3. ROSCO yaml file
 rosco_yaml = this_dir + os.sep + 'IEA-15-240-RWT-UMaineSemi_ROSCO.yaml'

@@ -148,14 +148,16 @@ class MF_Turbine(object):
 
         self.generate_case_data()
 
-    def tune_and_write_files(self,omega_pc = None):
+    def tune_and_write_files(self,desvars = None):
 
         turbine = self.turbine
         controller_params = self.controller_params
 
-        if not(omega_pc == None):
-            controller_params['omega_pc'] = omega_pc
+        if not(desvars == None):
 
+            for qty in desvars.keys(): 
+                controller_params[qty] = desvars[qty]
+        
         discon_files = self.discon_files
         cp_files = self.cp_files
 
@@ -228,7 +230,7 @@ class MF_Turbine(object):
 
             ind = self.reqd_states.index('GenSpeed')
             x0[ind] = reader_case.fst_vt['ElastoDyn']['RotSpeed']*self.GB_ratio
-
+            
             args = {'DT':dt,'num_blade':n_blades,'pitch':bp0}
 
             param = {}
@@ -316,9 +318,9 @@ class Level3_Turbine(object):
     def __init__(self,mf_turb):
         self.mf_turb = mf_turb
 
-    def compute(self,omega_pc):
+    def compute(self,desvars):
 
-        self.mf_turb.tune_and_write_files(omega_pc)
+        self.mf_turb.tune_and_write_files(desvars)
         cruncher,_,_ = self.mf_turb.run_openfast(overwrite_flag = True)
         outputs = compute_outputs(cruncher)
 
@@ -331,32 +333,51 @@ class DFSM_Turbine(object):
     def __init__(self,mf_turb):
         self.mf_turb        = mf_turb
 
-    def compute(self,omega_pc):
+    def compute(self,desvars):
         
-        self.mf_turb.tune_and_write_files(omega_pc)
+        self.mf_turb.tune_and_write_files(desvars)
         cruncher,_,_ = self.mf_turb.run_dfsm()
-
         outputs = compute_outputs(cruncher)
 
         return outputs
 
-def compute_outputs(cruncher):
+def compute_outputs(cruncher,nblades = 3,tstart = 0):
     
     prob = cruncher.prob
     n_cases = len(prob)
 
     # save outputs
-
+    
     if n_cases == 1:
         outputs = {}
         outputs['TwrBsMyt_DEL']     = cruncher.dels['TwrBsMyt'].iloc[0]
-        outputs['GenSpeed_Max']     = cruncher.summary_stats['GenSpeed']['max'].iloc[0]
+        outputs['GenSpeed_Max']     = cruncher.summary_stats['GenSpeed']['max'].iloc[0]/7.5
 
     else:
 
         outputs = {}
         outputs['TwrBsMyt_DEL'] = np.sum(np.array(cruncher.dels['TwrBsMyt'])*prob)
         outputs['GenSpeed_Max'] = np.max(np.array(cruncher.summary_stats['GenSpeed']['max']))/7.5
+
+    tot_time = 0
+    tot_travel = 0
+    num_dir_changes = 0
+    for i_ts in range(cruncher.noutputs):
+        iout = cruncher.outputs[i_ts].copy()
+        
+        # total time
+        tot_time += iout.elapsed_time
+        
+        for i_blade in range(nblades):
+            # total pitch travel (\int |\dot{\frac{d\theta}{dt}| dt)
+            tot_travel += iout.total_travel(f'BldPitch{i_blade+1}')
+
+            # number of direction changes on each blade
+            #num_dir_changes += 0.5 * np.sum(np.abs(np.diff(np.sign(iout[f'dBldPitch{i_blade+1}']))))
+
+    # Normalize by number of blades, total time
+    outputs['avg_pitch_travel'] = tot_travel / nblades / tot_time
+    #outputs['pitch_duty_cycle'] = num_dir_changes / nblades / tot_time
         
         
 

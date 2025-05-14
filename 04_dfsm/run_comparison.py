@@ -14,7 +14,7 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'transition' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/near_rated_test/' + os.sep + 'openfast_runs'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
 
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     run_sens_study = False
     
     bounds = np.array([0.10, 0.3])
-    desvars = {'pc_omega' : np.array([0.2])}
+    desvars = {'omega_pc' : np.array([0.2])}
     
 
     if MPI:
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         # 1. DFSM file and the model detials
         dfsm_file = this_dir + os.sep + 'dfsm_fowt_1p6.pkl'
 
-        reqd_states = ['PtfmPitch','TTDspFA','GenSpeed']
+        reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
         reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
         reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt']
 
@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options)
+        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200)
 
         model_low = LFTurbine(desvars,  mf_controls)
         model_high = HFTurbine(desvars, mf_controls)
@@ -158,11 +158,11 @@ if __name__ == '__main__':
                 fig,ax = plt.subplots(3,1)
                 fig.subplots_adjust(hspace = 0.65)
 
-                ax[0].plot(ct_of['Time'],ct_of['RtVAvgxh'])
-                ax[0].plot(ct_dfsm['Time'],ct_dfsm['RtVAvgxh'])
+                ax[0].plot(ct_of['Time'],ct_of['GenSpeed'])
+                ax[0].plot(ct_dfsm['Time'],ct_dfsm['GenSpeed'])
 
-                ax[1].plot(ct_of['Time'],ct_of['GenSpeed'])
-                ax[1].plot(ct_dfsm['Time'],ct_dfsm['GenSpeed'])
+                ax[1].plot(ct_of['Time'],ct_of['PtfmPitch'])
+                ax[1].plot(ct_dfsm['Time'],ct_dfsm['PtfmPitch'])
 
                 ax[2].plot(ct_of['Time'],ct_of['BldPitch1'])
                 ax[2].plot(ct_dfsm['Time'],ct_dfsm['BldPitch1'])

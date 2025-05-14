@@ -120,7 +120,6 @@ def run_mpi(case_data_all,mpi_options):
 
 
 def run_dfsm(case_data_all,reqd_states,reqd_controls,reqd_outputs,mpi_options,GB_ratio = 1, TStart = 0):
-    print('gets here')
 
     if mpi_options['mpi_run']:
         # evaluate the closed loop simulations in parallel using MPI
@@ -160,6 +159,8 @@ def run_dfsm(case_data_all,reqd_states,reqd_controls,reqd_outputs,mpi_options,GB
 
     for output in ae_output_list:
         cruncher.add_output(output)
+
+    cruncher.outputs = ae_output_list
 
     return cruncher,ae_output_list,chan_time_list
 

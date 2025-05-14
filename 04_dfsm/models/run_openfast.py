@@ -169,4 +169,7 @@ def run_openfast(fst_files,reqd_states,reqd_controls,reqd_outputs,mpi_options,GB
     for output in ae_output_list:
         cruncher.add_output(output)
 
+    cruncher.outputs = ae_output_list
+
+
     return cruncher,ae_output_list,chan_time_list

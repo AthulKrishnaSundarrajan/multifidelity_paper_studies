@@ -82,8 +82,8 @@ if __name__ == '__main__':
             mpi_options = None
         
         mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options)
-        bounds = {'pc_omega' : np.array([[0.10, 0.3]])}
-        desvars = {'pc_omega' : np.array([0.25])}
+        bounds = {'omega_pc' : np.array([[0.10, 0.3]])}
+        desvars = {'omega_pc' : np.array([0.25])}
 
         model_low = LFTurbine(desvars,  mf_turb)
         model_high = HFTurbine(desvars, mf_turb)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
             bounds,
             disp=2,
             trust_radius=0.5,
-            num_initial_points=3,
+            num_initial_points=2,
             radius_tol = 1e-3,
             optimization_log = True
         )
@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
 
         t1 = timer.time()
-        trust_region.optimize(plot=False, num_basinhop_iterations=0,num_iterations = 1)
+        trust_region.optimize(plot=False, num_basinhop_iterations=0,num_iterations = 20)
         t2 = timer.time()
 
 

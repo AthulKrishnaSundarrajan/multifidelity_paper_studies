@@ -1,0 +1,24 @@
+Optimization Log
+
+================
+Iteration number : 1
+x_old: 0.2152
+x_new: 0.2152
+LF Model Eval : 9
+HF Model Eval : 3
+Actual Obj value at x_old:2.441390932683838
+Predicted Obj value at x_old:2.4413909326838383
+Actual Obj value at x_new:2.4729505662097777
+Predicted Obj value at x_new:2.4723216366314373
+Trust region expanded
+================
+Iteration number : 2
+x_old: 0.2152
+x_new: 0.2152
+LF Model Eval : 21
+HF Model Eval : 4
+Actual Obj value at x_old:2.4729505662097777
+Predicted Obj value at x_old:2.4729505662097777
+Actual Obj value at x_new:2.473180044555128
+Predicted Obj value at x_new:2.472950704725072
+Trust region expanded

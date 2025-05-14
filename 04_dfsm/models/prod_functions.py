@@ -11,7 +11,7 @@ class LFTurbine(BaseModel):
         self.lf_turb = DFSM_Turbine(mf_turb)
 
     def compute(self, desvars):
-        outputs = self.lf_turb.compute(desvars['pc_omega'])
+        outputs = self.lf_turb.compute(desvars)
         self.n_count+=1
         
         return outputs
@@ -25,7 +25,7 @@ class HFTurbine(BaseModel):
         self.n_count = 0
 
     def compute(self, desvars):
-        outputs = self.l3_turb.compute(desvars['pc_omega'])
+        outputs = self.l3_turb.compute(desvars)
         self.n_count+=1
         
         return outputs
