@@ -18,7 +18,7 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'transition' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/near_rated_test' + os.sep + 'openfast_runs'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
 
@@ -62,9 +62,9 @@ if __name__ == '__main__':
         # 1. DFSM file and the model detials
         dfsm_file = this_dir + os.sep + 'dfsm_fowt_1p6.pkl'
 
-        reqd_states = ['PtfmPitch','TTDspFA','GenSpeed']
+        reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
         reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
-        reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt']
+        reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
 
         
         # 3. ROSCO yaml file
@@ -81,9 +81,9 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options)
-        bounds = {'omega_pc' : np.array([[0.10, 0.3]])}
-        desvars = {'omega_pc' : np.array([0.25])}
+        mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200)
+        bounds = {'omega_pc' : np.array([[0.10, 0.3]]),'zeta_pc' : np.array([[0.10, 3.0]])}
+        desvars = {'omega_pc' : np.array([0.25]),'zeta_pc': np.array([2.5])}
 
         model_low = LFTurbine(desvars,  mf_turb)
         model_high = HFTurbine(desvars, mf_turb)
@@ -98,11 +98,13 @@ if __name__ == '__main__':
             trust_radius=0.5,
             num_initial_points=2,
             radius_tol = 1e-3,
-            optimization_log = True
+            optimization_log = True,
+            log_filename = 'MO_travel.txt'
         )
 
-        trust_region.add_objective("TwrBsMyt_DEL", scaler=1e-5)
+        trust_region.add_objective("avg_pitch_travel", scaler = 10)
         trust_region.add_constraint("GenSpeed_Max", upper=1.2)
+        trust_region.add_constraint("TwrBsMyt_DEL",upper = 3e6)
         # trust_region.construct_approximations(interp_method = 'smt')
         # approx_functions = trust_region.approximation_functions
 
@@ -120,6 +122,8 @@ if __name__ == '__main__':
         t1 = timer.time()
         trust_region.optimize(plot=False, num_basinhop_iterations=0,num_iterations = 20)
         t2 = timer.time()
+
+        
 
 
 

@@ -14,7 +14,7 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/near_rated_test/' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/nearrated' + os.sep + 'openfast_runs'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
 
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     run_sens_study = False
     
     bounds = np.array([0.10, 0.3])
-    desvars = {'omega_pc' : np.array([0.2])}
+    desvars = {'omega_pc' : np.array([0.2]),'zeta_pc': np.array([1.0])}
     
 
     if MPI:
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
         reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
         reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
-        reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt']
+        reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
 
         
         # 3. ROSCO yaml file
@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200)
+        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=00)
 
         model_low = LFTurbine(desvars,  mf_controls)
         model_high = HFTurbine(desvars, mf_controls)
@@ -154,21 +154,20 @@ if __name__ == '__main__':
             i_fig = 0
             
             for ct_of,ct_dfsm in zip(chan_time_list_of,chan_time_list_dfsm):
-            
-                fig,ax = plt.subplots(3,1)
-                fig.subplots_adjust(hspace = 0.65)
 
-                ax[0].plot(ct_of['Time'],ct_of['GenSpeed'])
-                ax[0].plot(ct_dfsm['Time'],ct_dfsm['GenSpeed'])
+                channels = mf_controls.channels
 
-                ax[1].plot(ct_of['Time'],ct_of['PtfmPitch'])
-                ax[1].plot(ct_dfsm['Time'],ct_dfsm['PtfmPitch'])
+                for chan in channels:
 
-                ax[2].plot(ct_of['Time'],ct_of['BldPitch1'])
-                ax[2].plot(ct_dfsm['Time'],ct_dfsm['BldPitch1'])
+                    fig,ax = plt.subplots(1)
+                    fig.subplots_adjust(hspace = 0.65)
 
-                fig.savefig(fig_fol + os.sep +'comp_'+str(i_fig)+'.pdf')
-                plt.close(fig)
+                    ax.plot(ct_of['Time'],ct_of[chan],label = 'OpenFAST')
+                    ax.plot(ct_dfsm['Time'],ct_dfsm[chan],label = 'DFSM')
+                    ax.legend(ncol = 2)
+
+                    fig.savefig(fig_fol + os.sep +chan +'_comp'+str(i_fig)+'.pdf')
+                    plt.close(fig)
                 i_fig+=1
 
     #---------------------------------------------------

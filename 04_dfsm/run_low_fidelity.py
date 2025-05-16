@@ -6,6 +6,8 @@ from os import path
 import openmdao.api as om
 import os
 
+from wisdem.optimization_drivers.nlopt_driver import NLoptDriver
+
 
 bounds = np.array([0.10, 0.3])
 desvars = {'omega_pc' : np.array([0.2])}
@@ -19,7 +21,7 @@ dfsm_file = this_dir + os.sep + 'dfsm_fowt_1p6.pkl'
 
 reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
 reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
-reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt']
+reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
 
 # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
 OF_dir = this_dir + os.sep + 'outputs/near_rated_test' + os.sep + 'openfast_runs'
@@ -63,8 +65,8 @@ for key in desvars:
     
 s = time()
 
-p.driver = om.pyOptSparseDriver()
-p.driver.options['optimizer'] = "SLSQP"
+p.driver =  NLoptDriver()
+p.driver.options['optimizer'] = "LN_COBYLA"
 
 for key in desvars:
     model.add_design_var(key, lower=bounds[0], upper=bounds[1])

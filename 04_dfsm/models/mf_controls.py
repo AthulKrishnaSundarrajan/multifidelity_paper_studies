@@ -156,6 +156,7 @@ class MF_Turbine(object):
         if not(desvars == None):
 
             for qty in desvars.keys(): 
+                
                 controller_params[qty] = desvars[qty]
         
         discon_files = self.discon_files
@@ -350,15 +351,15 @@ def compute_outputs(cruncher,nblades = 3,tstart = 0):
     
     if n_cases == 1:
         outputs = {}
-        outputs['TwrBsMyt_DEL']     = cruncher.dels['TwrBsMyt'].iloc[0]
+        outputs['TwrBsMyt_DEL']     = cruncher.dels['TwrBsMyt'].iloc[0]*1e-5
         outputs['GenSpeed_Max']     = cruncher.summary_stats['GenSpeed']['max'].iloc[0]/7.5
 
     else:
 
         outputs = {}
-        outputs['TwrBsMyt_DEL'] = np.sum(np.array(cruncher.dels['TwrBsMyt'])*prob)
+        outputs['TwrBsMyt_DEL'] = np.sum(np.array(cruncher.dels['TwrBsMyt'])*prob)*1e-5
         outputs['GenSpeed_Max'] = np.max(np.array(cruncher.summary_stats['GenSpeed']['max']))/7.5
-
+    
     tot_time = 0
     tot_travel = 0
     num_dir_changes = 0
@@ -378,6 +379,7 @@ def compute_outputs(cruncher,nblades = 3,tstart = 0):
     # Normalize by number of blades, total time
     outputs['avg_pitch_travel'] = tot_travel / nblades / tot_time
     #outputs['pitch_duty_cycle'] = num_dir_changes / nblades / tot_time
+    
         
         
 
