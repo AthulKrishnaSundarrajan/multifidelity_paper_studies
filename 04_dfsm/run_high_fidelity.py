@@ -6,6 +6,7 @@ from os import path
 import openmdao.api as om
 import os,sys
 from weis.glue_code.mpi_tools import MPI
+from wisdem.optimization_drivers.nlopt_driver import NLoptDriver
 
 
 if __name__ == '__main__':
@@ -118,14 +119,13 @@ if __name__ == '__main__':
             
         s = time()
         
-        p.driver = om.pyOptSparseDriver()
-        p.driver.options['optimizer'] = "SLSQP"
+        p.driver = NLoptDriver()
+        p.driver.options['optimizer'] = "LN_COBYLA"
 
         for key in desvars:
             model.add_design_var(key, lower=bounds[0], upper=bounds[1])
         model.add_constraint('GenSpeed_Max', upper=9.)
         model.add_objective('TwrBsMyt_DEL', ref=1.e5)
-        print('gets here?')
         p.driver.recording_options['includes'] = ['*']
         p.driver.recording_options['record_objectives'] = True
         p.driver.recording_options['record_constraints'] = True

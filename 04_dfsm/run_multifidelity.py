@@ -18,7 +18,7 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/near_rated_test' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/nearrated' + os.sep + 'openfast_runs'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
 
@@ -99,12 +99,13 @@ if __name__ == '__main__':
             num_initial_points=2,
             radius_tol = 1e-3,
             optimization_log = True,
-            log_filename = 'MO_travel.txt'
+            log_filename = 'MO_DEL_JMD.txt'
         )
 
-        trust_region.add_objective("avg_pitch_travel", scaler = 10)
+        trust_region.add_objective("TwrBsMyt_DEL", scaler = 1e-5)
         trust_region.add_constraint("GenSpeed_Max", upper=1.2)
-        trust_region.add_constraint("TwrBsMyt_DEL",upper = 3e6)
+        #trust_region.add_constraint("TwrBsMyt_DEL",upper = 3e6)
+        trust_region.set_initial_point(np.array([0.25,2.5]))
         # trust_region.construct_approximations(interp_method = 'smt')
         # approx_functions = trust_region.approximation_functions
 

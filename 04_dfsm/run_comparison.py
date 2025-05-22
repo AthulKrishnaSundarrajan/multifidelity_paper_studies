@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from models.mf_controls import MF_Turbine,compute_outputs,valid_extension
 from models.prod_functions import LFTurbine,HFTurbine
 from weis.glue_code.mpi_tools import MPI
+import pickle
 
 if __name__ == '__main__':
 
@@ -14,16 +15,17 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/nearrated' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/nearrated_5' + os.sep + 'openfast_runs'
+    wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
-
     n_OF_runs = len(fst_files)
 
-    run_sens_study = False
+    run_sens_study = True
     
-    bounds = np.array([0.10, 0.3])
+    bounds = np.array([[0.10, 0.3],[0.1,3.0]])
     desvars = {'omega_pc' : np.array([0.2]),'zeta_pc': np.array([1.0])}
+    npts = 5
     
 
     if MPI:
@@ -82,7 +84,7 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=00)
+        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
 
         model_low = LFTurbine(desvars,  mf_controls)
         model_high = HFTurbine(desvars, mf_controls)
@@ -93,53 +95,61 @@ if __name__ == '__main__':
 
         if run_sens_study:
 
-            npts = 5
+            n_samples = npts**2
 
-            twrbsmyt_del = np.zeros((npts,2))
-            genspeed_max = np.zeros((npts,2))
+            twrbsmyt_del = np.zeros((n_samples,2))
+            pitch_travel = np.zeros((n_samples,2))
+            genspeed_max = np.zeros((n_samples,2))
+            genspeed_std = np.zeros((n_samples,2))
+            ptfmpitch_max = np.zeros((n_samples,2))
+            ptfmpitch_std = np.zeros((n_samples,2))
+            p_avg = np.zeros((n_samples,2))
 
-            pc_omega = np.linspace(bounds[0],bounds[-1],npts)
-            print(pc_omega)
+            omega_pc = np.linspace(bounds[0,0],bounds[0,1],npts)
+            zeta_pc = np.linspace(bounds[1,0],bounds[1,1],npts)
+            O,Z = np.meshgrid(omega_pc,zeta_pc)
 
-            for ipt in range(npts):
-                dvar = {'pc_omega':pc_omega[ipt]}
+            OZ = np.hstack([O,Z])
+
+            OZ = np.reshape(OZ,[n_samples,2],order = 'F')
+
+
+
+            
+
+            for ipt in range(n_samples):
+                dvar = {'omega_pc':OZ[ipt,0],'zeta_pc':OZ[ipt,1]}
+
                 print(dvar)
                 outputs_low = model_low.compute(dvar)
                 outputs_high = model_high.compute(dvar)
 
                 twrbsmyt_del[ipt,0] = outputs_high['TwrBsMyt_DEL']
                 genspeed_max[ipt,0] = outputs_high['GenSpeed_Max']
+                pitch_travel[ipt,0] = outputs_high['avg_pitch_travel']
+                genspeed_std[ipt,0] = outputs_high['GenSpeed_Std']
+                ptfmpitch_max[ipt,0] = outputs_high['PtfmPitch_Max']
+                ptfmpitch_std[ipt,0] = outputs_high['PtfmPitch_Std']
+                p_avg[ipt,0] = outputs_high['P_avg']
 
                 twrbsmyt_del[ipt,1] = outputs_low['TwrBsMyt_DEL']
                 genspeed_max[ipt,1] = outputs_low['GenSpeed_Max']
+                pitch_travel[ipt,1] = outputs_low['avg_pitch_travel']
+                genspeed_std[ipt,1] = outputs_low['GenSpeed_Std']
+                ptfmpitch_max[ipt,1] = outputs_low['PtfmPitch_Max']
+                ptfmpitch_std[ipt,1] = outputs_low['PtfmPitch_Std']
+                p_avg[ipt,1] = outputs_low['P_avg']
+
 
             print(model_high.n_count)
             print(model_low.n_count)
+            print(twrbsmyt_del)
+            
 
-            fig,ax = plt.subplots(1)
-
-            ax.plot(pc_omega,twrbsmyt_del[:,0],'.-',markersize = 10,label = 'HF')
-            ax.plot(pc_omega,twrbsmyt_del[:,1],'.-',markersize = 10,label = 'LF')
-            ax.set_xlabel('PC_Omega')
-            ax.set_ylabel('TwrBsMyt')
-            ax.legend(ncol = 2)
-
-
-            fig.savefig(fig_fol + os.sep +'sens_DEL'+'.pdf')
-            plt.close(fig)
-
-            fig,ax = plt.subplots(1)
-
-            ax.plot(pc_omega,genspeed_max[:,0],'.-',markersize = 10,label = 'HF')
-            ax.plot(pc_omega,genspeed_max[:,1],'.-',markersize = 10,label = 'LF')
-            ax.set_xlabel('PC_Omega')
-            ax.set_ylabel('Genspeed Max')
-            ax.legend(ncol = 2)
-
-
-            fig.savefig(fig_fol + os.sep +'sens_GS'+'.pdf')
-            plt.close(fig)
-
+            results_dict = {'OZ':OZ,'twrbsmyt_del':twrbsmyt_del,'genspeed_max':genspeed_max,'pitch_travel':pitch_travel,'genspeed_std':genspeed_std,'ptfmpitch_max':ptfmpitch_max,'ptfmpitch_std':ptfmpitch_std,'P_avg':p_avg}
+            with open('sensstudy_results.pkl','wb') as handle:
+                pickle.dump(results_dict,handle)
+                
         else:
 
             cruncher_dfsm,ae_output_list_dfsm,chan_time_list_dfsm = mf_controls.run_dfsm()

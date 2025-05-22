@@ -72,28 +72,12 @@ class MF_Turbine(object):
 
     '''
 
-    def __init__(self,dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,ode_method = 'RK4',transition_time = 0,mpi_options = None):
+    def __init__(self,dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,ode_method = 'RK4',transition_time = 0,mpi_options = None,wind_dataset = None):
 
 
         self.dfsm_file = dfsm_file
         self.ode_method = ode_method
         self.transition_time = transition_time
-
-        if mpi_options == None:
-            self.mpi_options = {'mpi_run':False}
-        else:
-            self.mpi_options = mpi_options
-        
-        with open(dfsm_file,'rb') as handle:
-            self.dfsm = pickle.load(handle)
-
-        self.reqd_states = reqd_states
-        self.nx = 2*len(reqd_states)
-        self.reqd_controls = reqd_controls
-        self.reqd_outputs = reqd_outputs
-        self.ny = len(reqd_outputs)
-
-        self.channels = reqd_states + reqd_controls + reqd_outputs
 
         # save openfast directory
         self.OF_dir = OF_dir
@@ -104,6 +88,36 @@ class MF_Turbine(object):
 
         self.fst_files = fst_files
         self.n_cases = len(fst_files)
+
+        if mpi_options == None:
+            self.mpi_options = {'mpi_run':False}
+        else:
+            self.mpi_options = mpi_options
+        
+        with open(dfsm_file,'rb') as handle:
+            self.dfsm = pickle.load(handle)
+
+        if wind_dataset == None:
+            self.calc_wind = True
+            self.load_wind = False
+        else:
+            self.calc_wind = False
+            self.load_wind = True
+
+            with open(wind_dataset,'rb') as handle:
+                self.wind_dataset = pickle.load(handle)
+
+            if not (self.n_cases == np.shape(self.wind_dataset)[1]-1):
+                raise('the length of the wind dataset must be the same as the number of cases')
+
+
+        self.reqd_states = reqd_states
+        self.nx = 2*len(reqd_states)
+        self.reqd_controls = reqd_controls
+        self.reqd_outputs = reqd_outputs
+        self.ny = len(reqd_outputs)
+
+        self.channels = reqd_states + reqd_controls + reqd_outputs 
 
 
         # get a list of cp_ct_cq files
@@ -216,7 +230,7 @@ class MF_Turbine(object):
             rotorD = 2*reader_case.fst_vt['ElastoDyn']['TipRad']
             hub_height = reader_case.fst_vt['ElastoDyn']['HubRad']  +reader_case.fst_vt['ElastoDyn']['TowerHt']
 
-            wind_fun,wave_fun = self.load_datasets(ts_file,wv_file,rotorD,hub_height)
+            wind_fun,wave_fun = self.load_datasets(ts_file,wv_file,rotorD,hub_height,i_case)
             bp0 = reader_case.fst_vt['ElastoDyn']['BlPitch1']
 
             x0 = np.zeros((self.nx,))
@@ -271,12 +285,19 @@ class MF_Turbine(object):
 
     
 
-    def load_datasets(self,ts_file,wv_file,rotorD,hub_height):
+    def load_datasets(self,ts_file,wv_file,rotorD,hub_height,i_case):
 
-        ts_file_     = TurbSimFile(ts_file)
-        rot_avg = compute_rot_avg(ts_file_['u'],ts_file_['y'],ts_file_['z'],ts_file_['t'],rotorD,hub_height)
-        u_h         = rot_avg[0,:]
-        t_wind          = ts_file_['t']
+        if self.calc_wind:
+            ts_file_     = TurbSimFile(ts_file)
+            rot_avg = compute_rot_avg(ts_file_['u'],ts_file_['y'],ts_file_['z'],ts_file_['t'],rotorD,hub_height)
+            u_h         = rot_avg[0,:]
+            t_wind          = ts_file_['t']
+
+        elif self.load_wind:
+
+            t_wind = self.wind_dataset[:,0]
+            u_h = self.wind_dataset[:,i_case+1]
+
 
         wind_fun = CubicSpline(t_wind,u_h)
 
@@ -353,12 +374,20 @@ def compute_outputs(cruncher,nblades = 3,tstart = 0):
         outputs = {}
         outputs['TwrBsMyt_DEL']     = cruncher.dels['TwrBsMyt'].iloc[0]*1e-5
         outputs['GenSpeed_Max']     = cruncher.summary_stats['GenSpeed']['max'].iloc[0]/7.5
+        outputs['GenSpeed_Std']     = cruncher.summary_stats['GenSpeed']['std'].iloc[0]
+        outputs['P_avg'] = cruncher.summary_stats['GenPwr']['mean'].iloc[0]
+        outputs['PtfmPitch_Std'] = cruncher.summary_stats['PtfmPitch']['std'].iloc[0]
+        outputs['PtfmPitch_Max'] = cruncher.summary_stats['PtfmPitch']['max'].iloc[0]
 
     else:
 
         outputs = {}
         outputs['TwrBsMyt_DEL'] = np.sum(np.array(cruncher.dels['TwrBsMyt'])*prob)*1e-5
         outputs['GenSpeed_Max'] = np.max(np.array(cruncher.summary_stats['GenSpeed']['max']))/7.5
+        outputs['GenSpeed_Std']     = np.mean(np.array(cruncher.summary_stats['GenSpeed']['std']))
+        outputs['P_avg'] = np.sum(np.array(cruncher.summary_stats['GenPwr']['mean'])*prob)
+        outputs['PtfmPitch_Std']     = np.mean(np.array(cruncher.summary_stats['PtfmPitch']['std']))
+        outputs['PtfmPitch_Max']     = np.max(np.array(cruncher.summary_stats['PtfmPitch']['max']))
     
     tot_time = 0
     tot_travel = 0
