@@ -18,7 +18,8 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/nearrated' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/nearrated_5' + os.sep + 'openfast_runs'
+    wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
 
@@ -81,7 +82,7 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200)
+        mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
         bounds = {'omega_pc' : np.array([[0.10, 0.3]]),'zeta_pc' : np.array([[0.10, 3.0]])}
         desvars = {'omega_pc' : np.array([0.25]),'zeta_pc': np.array([2.5])}
 
@@ -102,7 +103,7 @@ if __name__ == '__main__':
             log_filename = 'MO_DEL_JMD.txt'
         )
 
-        trust_region.add_objective("TwrBsMyt_DEL", scaler = 1e-5)
+        trust_region.add_objective("TwrBsMyt_DEL", scaler = 1e-0)
         trust_region.add_constraint("GenSpeed_Max", upper=1.2)
         #trust_region.add_constraint("TwrBsMyt_DEL",upper = 3e6)
         trust_region.set_initial_point(np.array([0.25,2.5]))
