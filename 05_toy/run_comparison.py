@@ -10,7 +10,7 @@ mf_turbine = MF_Turbine(results_file=results_file,obj= 'DEL',const = 'rotor_over
 
 mf_turbine.compare()
 
-desvars = {'pc_omega' : 0.2,'pc_zeta': 1.0}
+desvars = {'omega_pc' : 0.2,'zeta_pc': 1.0}
 
 model = L3Turbine(desvars,mf_turbine)
 

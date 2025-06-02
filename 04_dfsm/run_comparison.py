@@ -15,16 +15,16 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/nearrated_5' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/test' + os.sep + 'openfast_runs'
     wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
     n_OF_runs = len(fst_files)
 
-    run_sens_study = True
+    run_sens_study = False
     
-    bounds = np.array([[0.10, 0.3],[0.1,3.0]])
-    desvars = {'omega_pc' : np.array([0.2]),'zeta_pc': np.array([1.0])}
+    bounds = np.array([[0.10, 3.0],[0,-40]])
+    desvars = {'zeta_pc' : np.array([2]),'Kp_float': np.array([-9])}
     npts = 5
     
 
@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
+        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=00,wind_dataset=wind_dataset)
 
         model_low = LFTurbine(desvars,  mf_controls)
         model_high = HFTurbine(desvars, mf_controls)
@@ -118,7 +118,7 @@ if __name__ == '__main__':
             
 
             for ipt in range(n_samples):
-                dvar = {'omega_pc':OZ[ipt,0],'zeta_pc':OZ[ipt,1]}
+                dvar = {'zeta_pc':OZ[ipt,0],'Kp_float':OZ[ipt,1]}
 
                 print(dvar)
                 outputs_low = model_low.compute(dvar)
@@ -147,7 +147,7 @@ if __name__ == '__main__':
             
 
             results_dict = {'OZ':OZ,'twrbsmyt_del':twrbsmyt_del,'genspeed_max':genspeed_max,'pitch_travel':pitch_travel,'genspeed_std':genspeed_std,'ptfmpitch_max':ptfmpitch_max,'ptfmpitch_std':ptfmpitch_std,'P_avg':p_avg}
-            with open('sensstudy_results.pkl','wb') as handle:
+            with open('sensstudy_results_ZK.pkl','wb') as handle:
                 pickle.dump(results_dict,handle)
                 
         else:

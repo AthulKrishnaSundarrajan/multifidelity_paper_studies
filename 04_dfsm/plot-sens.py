@@ -17,8 +17,8 @@ if __name__ == '__main__':
     # get path to this dir
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
-    results_file = this_dir + os.sep +'sensstudy_results.pkl'
-    plot_path = this_dir + os.sep +'sens_results'
+    results_file = this_dir + os.sep +'sensstudy_results_ZK.pkl'
+    plot_path = this_dir + os.sep +'sens_results_ZK'
 
     if not os.path.exists(plot_path):
         os.mkdir(plot_path)

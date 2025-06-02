@@ -17,6 +17,8 @@ from openfast_io.FAST_reader   import InputReader_OpenFAST as reader
 
 from pCrunch import Crunch,FatigueParams, AeroelasticOutput
 
+import copy
+
 
 
 from rosco.toolbox import controller as ROSCO_controller
@@ -166,6 +168,7 @@ class MF_Turbine(object):
 
         turbine = self.turbine
         controller_params = self.controller_params
+        
 
         if not(desvars == None):
 
@@ -178,7 +181,7 @@ class MF_Turbine(object):
 
         controller      = ROSCO_controller.Controller(controller_params)
         controller.tune_controller(turbine)
-
+        
         for i_case in range(self.n_cases):
             write_DISCON(
             turbine,controller,
@@ -340,9 +343,25 @@ class Level3_Turbine(object):
     def __init__(self,mf_turb):
         self.mf_turb = mf_turb
 
-    def compute(self,desvars):
+    def compute(self,desvars,scaling_dict):
+        
+        if not(scaling_dict == None):
 
-        self.mf_turb.tune_and_write_files(desvars)
+            dv = {}
+
+            for var in desvars.keys():
+                print(var)
+                if var in scaling_dict.keys():
+                    
+                    dv[var] = desvars[var]/scaling_dict[var]
+
+                else:
+                    dv[var] = desvars[var]
+
+        else:
+            dv = desvars
+        
+        self.mf_turb.tune_and_write_files(dv)
         cruncher,_,_ = self.mf_turb.run_openfast(overwrite_flag = True)
         outputs = compute_outputs(cruncher)
 
@@ -355,9 +374,20 @@ class DFSM_Turbine(object):
     def __init__(self,mf_turb):
         self.mf_turb        = mf_turb
 
-    def compute(self,desvars):
-        
-        self.mf_turb.tune_and_write_files(desvars)
+    def compute(self,desvars,scaling_dict):
+
+        if not(scaling_dict == None):
+
+            dv = copy.copy(desvars)
+
+            for var in desvars.keys():
+                if var in scaling_dict.keys():
+                    dv[var] = desvars[var]/scaling_dict[var]
+
+        else:
+            dv = desvars
+
+        self.mf_turb.tune_and_write_files(dv)
         cruncher,_,_ = self.mf_turb.run_dfsm()
         outputs = compute_outputs(cruncher)
 

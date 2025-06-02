@@ -83,11 +83,12 @@ if __name__ == '__main__':
             mpi_options = None
         
         mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
-        bounds = {'omega_pc' : np.array([[0.10, 0.3]]),'zeta_pc' : np.array([[0.10, 3.0]])}
-        desvars = {'omega_pc' : np.array([0.25]),'zeta_pc': np.array([2.5])}
+        bounds = {'omega_pc' : np.array([[1, 3]]),'zeta_pc' : np.array([[0.10, 3.0]])}
+        desvars = {'omega_pc' : np.array([2.5]),'zeta_pc': np.array([2.5])}
+        scaling_dict = {'omega_pc':10}
 
-        model_low = LFTurbine(desvars,  mf_turb)
-        model_high = HFTurbine(desvars, mf_turb)
+        model_low = LFTurbine(desvars,  mf_turb, scaling_dict = scaling_dict)
+        model_high = HFTurbine(desvars, mf_turb, scaling_dict = scaling_dict)
 
         np.random.seed(123)
 
@@ -100,13 +101,13 @@ if __name__ == '__main__':
             num_initial_points=2,
             radius_tol = 1e-3,
             optimization_log = True,
-            log_filename = 'MO_DEL_JMD.txt'
+            log_filename = 'MO_DEL_JMD_all.txt'
         )
 
         trust_region.add_objective("TwrBsMyt_DEL", scaler = 1e-0)
         trust_region.add_constraint("GenSpeed_Max", upper=1.2)
         #trust_region.add_constraint("TwrBsMyt_DEL",upper = 3e6)
-        trust_region.set_initial_point(np.array([0.25,2.5]))
+        trust_region.set_initial_point(np.array([2.5,2.5]))
         # trust_region.construct_approximations(interp_method = 'smt')
         # approx_functions = trust_region.approximation_functions
 
@@ -122,7 +123,7 @@ if __name__ == '__main__':
 
 
         t1 = timer.time()
-        trust_region.optimize(plot=False, num_basinhop_iterations=0,num_iterations = 20)
+        trust_region.optimize(plot=False, num_basinhop_iterations=0,num_iterations = 40)
         t2 = timer.time()
 
         

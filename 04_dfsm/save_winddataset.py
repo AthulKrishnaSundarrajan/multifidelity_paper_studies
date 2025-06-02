@@ -15,18 +15,11 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    fol = 'nearrated_5'
+    fol = 'test'
     OF_dir = this_dir + os.sep + 'outputs/'+fol + os.sep + 'openfast_runs'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
     n_OF_runs = len(fst_files)
-
-    run_sens_study = True
-    
-    bounds = np.array([[0.10, 0.3],[0.1,3.0]])
-    desvars = {'omega_pc' : np.array([0.2]),'zeta_pc': np.array([1.0])}
-    npts = 5
-    
 
     if MPI:
         
