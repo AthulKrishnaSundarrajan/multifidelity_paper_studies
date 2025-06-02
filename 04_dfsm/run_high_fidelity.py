@@ -1,11 +1,12 @@
 import numpy as np
-from models.prod_functions import HFTurbine
+from models.prod_functions import LFTurbine,HFTurbine
 from models.mf_controls import MF_Turbine,valid_extension
 from time import time
 from os import path
 import openmdao.api as om
 import os,sys
 from weis.glue_code.mpi_tools import MPI
+from wisdem.optimization_drivers.nlopt_driver import NLoptDriver
 
 
 if __name__ == '__main__':
@@ -13,14 +14,16 @@ if __name__ == '__main__':
     if MPI:
         from weis.glue_code.mpi_tools import map_comm_heirarchical,subprocessor_loop, subprocessor_stop
 
-    bounds = np.array([0.10, 0.3])
-    desvars = {'pc_omega' : np.array([0.2])}
+    bounds = np.array([[1.0, 3.0],[0.1,3.0]])
+    desvars = {'omega_pc' : np.array([2.0]),'zeta_pc':np.array([2.5])}
 
     # get path to this directory
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'transition' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/test' + os.sep + 'openfast_runs'
+    wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
+
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
 
@@ -64,9 +67,9 @@ if __name__ == '__main__':
         # 1. DFSM file and the model detials
         dfsm_file = this_dir + os.sep + 'dfsm_fowt_1p6.pkl'
 
-        reqd_states = ['PtfmPitch','TTDspFA','GenSpeed']
+        reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
         reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
-        reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt']
+        reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
 
         
         # 3. ROSCO yaml file
@@ -97,20 +100,25 @@ if __name__ == '__main__':
                 self.add_output('GenSpeed_Max', val=0.)
                 
                 
-                mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=100)
+                mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
+                scaling_dict = {'omega_pc':10}
+                self.model = HFTurbine(desvars, mf_turb, scaling_dict = scaling_dict)
                 
-                self.model = HFTurbine(desvars, mf_turb)
 
             def compute(self, inputs, outputs):
                 desvars = self.options["desvars"]
+                
+                
                 model_outputs = self.model.compute(inputs)
                 outputs['TwrBsMyt_DEL'] = model_outputs['TwrBsMyt_DEL']
                 outputs['GenSpeed_Max'] = model_outputs['GenSpeed_Max']
             
-            
-        p = om.Problem(model=om.Group())
+        if MPI:
+            p = om.Problem(model=om.Group(num_par_fd = 1),comm = comm_i,reports = False)
+        else:
+            p = om.Problem(model=om.Group())
         model = p.model
-        model.approx_totals(method='fd', step=1e-6, form='central')
+        # model.approx_totals(method='fd', step=1e-3, form='central')
         comp = model.add_subsystem('Model', Model(desvars=desvars), promotes=['*'])
 
         for key in desvars:
@@ -118,14 +126,17 @@ if __name__ == '__main__':
             
         s = time()
         
-        p.driver = om.pyOptSparseDriver()
-        p.driver.options['optimizer'] = "SLSQP"
+        p.driver = NLoptDriver()
+        p.driver.options['optimizer'] = "LN_COBYLA"
+        p.driver.options['tol'] = 1e-3
 
+        ikey = 0
         for key in desvars:
-            model.add_design_var(key, lower=bounds[0], upper=bounds[1])
-        model.add_constraint('GenSpeed_Max', upper=9.)
-        model.add_objective('TwrBsMyt_DEL', ref=1.e5)
-        print('gets here?')
+            model.add_design_var(key, lower=bounds[ikey,0], upper=bounds[ikey,1])
+            ikey+=1
+
+        model.add_constraint('GenSpeed_Max', upper=1.2)
+        model.add_objective('TwrBsMyt_DEL', ref=1.e0)
         p.driver.recording_options['includes'] = ['*']
         p.driver.recording_options['record_objectives'] = True
         p.driver.recording_options['record_constraints'] = True
@@ -136,10 +147,10 @@ if __name__ == '__main__':
 
         p.driver.options['debug_print'] = ['desvars','ln_cons','nl_cons','objs','totals']
 
-        # recorder = om.SqliteRecorder("cases.sql")
-        # p.driver.add_recorder(recorder)
+        recorder = om.SqliteRecorder("cases.sql")
+        p.driver.add_recorder(recorder)
 
-        p.setup(mode='fwd')
+        p.setup()
         p.run_driver()
 
     #---------------------------------------------------

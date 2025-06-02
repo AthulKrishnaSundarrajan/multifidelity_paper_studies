@@ -10,4 +10,11 @@ mf_turbine = MF_Turbine(results_file=results_file,obj1= 'twrbsmyt_del',obj2 = 'g
 
 mf_turbine.compare('genspeed_std')
 
+desvars = {'omega_pc' : 0.2,'zeta_pc': 1.0}
+
+model = L3Turbine(desvars,mf_turbine)
+
+outputs = model.compute(desvars)
+
+breakpoint()
     

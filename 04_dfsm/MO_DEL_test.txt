@@ -1,0 +1,132 @@
+Optimization Log
+
+================
+Iteration number : 1
+x_old: 0.1572
+x_new: 0.2651
+LF Model Eval : 18
+HF Model Eval : 3
+Actual Obj value at x_old:2.20545881110601
+Predicted Obj value at x_old:2.2054588111060127
+Actual Obj value at x_new:2.5016585666333087
+Predicted Obj value at x_new:2.3179815164879223
+Constraint Value at x_old:1.2019710540771484
+Constraint Value at x_new:1.139052963256836
+Trust region expanded
+================
+Iteration number : 2
+x_old: 0.2651
+x_new: 0.1000
+LF Model Eval : 20
+HF Model Eval : 4
+Actual Obj value at x_old:2.5016585666333087
+Predicted Obj value at x_old:2.501658566633257
+Actual Obj value at x_new:2.2353168270889077
+Predicted Obj value at x_new:2.2485735469196064
+Constraint Value at x_old:1.139052963256836
+Constraint Value at x_new:1.2862411499023438
+Trust region expanded
+================
+Iteration number : 3
+x_old: 0.1000
+x_new: 0.1601
+LF Model Eval : 31
+HF Model Eval : 5
+Actual Obj value at x_old:2.2353168270889077
+Predicted Obj value at x_old:2.2353168270888584
+Actual Obj value at x_new:2.199154078129754
+Predicted Obj value at x_new:2.2103775938049695
+Constraint Value at x_old:1.2862411499023438
+Constraint Value at x_new:1.1988444010416666
+Trust region expanded
+================
+Iteration number : 4
+x_old: 0.1601
+x_new: 0.1833
+LF Model Eval : 37
+HF Model Eval : 6
+Actual Obj value at x_old:2.199154078129754
+Predicted Obj value at x_old:2.1991540781298156
+Actual Obj value at x_new:2.1608306102084325
+Predicted Obj value at x_new:2.154682518965671
+Constraint Value at x_old:1.1988444010416666
+Constraint Value at x_new:1.179755655924479
+Trust region expanded
+================
+Iteration number : 5
+x_old: 0.1833
+x_new: 0.1805
+LF Model Eval : 40
+HF Model Eval : 7
+Actual Obj value at x_old:2.1608306102084325
+Predicted Obj value at x_old:2.160830610208418
+Actual Obj value at x_new:2.13632016984869
+Predicted Obj value at x_new:2.1579283857047917
+Constraint Value at x_old:1.179755655924479
+Constraint Value at x_new:1.1808497111002605
+Trust region expanded
+================
+Iteration number : 6
+x_old: 0.1805
+x_new: 0.1752
+LF Model Eval : 45
+HF Model Eval : 8
+Actual Obj value at x_old:2.13632016984869
+Predicted Obj value at x_old:2.136320169848733
+Actual Obj value at x_new:2.1011277807546622
+Predicted Obj value at x_new:2.123981444210666
+Constraint Value at x_old:1.1808497111002605
+Constraint Value at x_new:1.1837580362955729
+Trust region expanded
+================
+Iteration number : 7
+x_old: 0.1752
+x_new: 0.1730
+LF Model Eval : 50
+HF Model Eval : 9
+Actual Obj value at x_old:2.1011277807546622
+Predicted Obj value at x_old:2.1011277807547017
+Actual Obj value at x_new:2.1016912016347336
+Predicted Obj value at x_new:2.0958005947363114
+Constraint Value at x_old:1.1837580362955729
+Constraint Value at x_new:1.185645294189453
+Trust region contracted
+================
+Iteration number : 8
+x_old: 0.1730
+x_new: 0.1746
+LF Model Eval : 57
+HF Model Eval : 10
+Actual Obj value at x_old:2.1016912016347336
+Predicted Obj value at x_old:2.10169120163461
+Actual Obj value at x_new:2.096554208547498
+Predicted Obj value at x_new:2.0959051565302724
+Constraint Value at x_old:1.185645294189453
+Constraint Value at x_new:1.184260940551758
+Trust region expanded
+================
+Iteration number : 9
+x_old: 0.1746
+x_new: 0.1745
+LF Model Eval : 62
+HF Model Eval : 11
+Actual Obj value at x_old:2.096554208547498
+Predicted Obj value at x_old:2.0965542085456335
+Actual Obj value at x_new:2.0956403737188376
+Predicted Obj value at x_new:2.0964911607923513
+Constraint Value at x_old:1.184260940551758
+Constraint Value at x_new:1.1843184153238933
+Trust region expanded
+================
+Iteration number : 10
+x_old: 0.1745
+x_new: 0.1746
+LF Model Eval : 74
+HF Model Eval : 12
+Actual Obj value at x_old:2.0956403737188376
+Predicted Obj value at x_old:2.1352039821635365
+Actual Obj value at x_new:2.0958783539621
+Predicted Obj value at x_new:2.1340284526651447
+Constraint Value at x_old:1.1843184153238933
+Constraint Value at x_new:1.1842212677001953
+Trust region contracted

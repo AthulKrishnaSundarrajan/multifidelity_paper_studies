@@ -1,0 +1,101 @@
+Optimization Log
+
+================
+Iteration number : 1
+x_old: 0.1000, 1.4300
+x_new: 0.1000, 1.2064
+LF Model Eval : 29
+HF Model Eval : 4
+Actual Obj value at x_old:1.7164211648268006
+Predicted Obj value at x_old:1.7164211648268055
+Actual Obj value at x_new:1.7517459193741285
+Predicted Obj value at x_new:1.6976289295098428
+Trust region contracted
+================
+Iteration number : 2
+x_old: 0.1000, 1.2064
+x_new: 0.1000, 1.3314
+LF Model Eval : 40
+HF Model Eval : 5
+Actual Obj value at x_old:1.7517459193741285
+Predicted Obj value at x_old:1.7517459193739415
+Actual Obj value at x_new:1.7239648514489354
+Predicted Obj value at x_new:1.731600567156753
+Trust region expanded
+================
+Iteration number : 3
+x_old: 0.1000, 1.3314
+x_new: 0.1000, 1.4418
+LF Model Eval : 63
+HF Model Eval : 6
+Actual Obj value at x_old:1.7239648514489354
+Predicted Obj value at x_old:1.7239648605565683
+Actual Obj value at x_new:1.716738523462165
+Predicted Obj value at x_new:1.7163491489641516
+Trust region expanded
+================
+Iteration number : 4
+x_old: 0.1000, 1.4418
+x_new: 0.1000, 1.4232
+LF Model Eval : 86
+HF Model Eval : 7
+Actual Obj value at x_old:1.716738523462165
+Predicted Obj value at x_old:1.7167385234598287
+Actual Obj value at x_new:1.7163614853316287
+Predicted Obj value at x_new:1.7163673969200544
+Trust region expanded
+================
+Iteration number : 5
+x_old: 0.1000, 1.4232
+x_new: 0.1000, 1.4212
+LF Model Eval : 107
+HF Model Eval : 8
+Actual Obj value at x_old:1.7163614853316287
+Predicted Obj value at x_old:1.716361485449126
+Actual Obj value at x_new:1.7162950517733908
+Predicted Obj value at x_new:1.7163609875577157
+Trust region expanded
+================
+Iteration number : 6
+x_old: 0.1000, 1.4212
+x_new: 0.1000, 1.4212
+LF Model Eval : 127
+HF Model Eval : 9
+Actual Obj value at x_old:1.7162950517733908
+Predicted Obj value at x_old:1.716336214670731
+Actual Obj value at x_new:1.7163083964027464
+Predicted Obj value at x_new:1.716336082682424
+Trust region contracted
+================
+Iteration number : 7
+x_old: 0.1000, 1.4212
+x_new: 0.1000, 1.4202
+LF Model Eval : 144
+HF Model Eval : 10
+Actual Obj value at x_old:1.7163083964027464
+Predicted Obj value at x_old:1.7163279777909262
+Actual Obj value at x_new:1.7162955677912886
+Predicted Obj value at x_new:1.7163308711776866
+Trust region contracted
+================
+Iteration number : 8
+x_old: 0.1000, 1.4202
+x_new: 0.1000, 1.4211
+LF Model Eval : 158
+HF Model Eval : 11
+Actual Obj value at x_old:1.7162955677912886
+Predicted Obj value at x_old:1.7163214483770792
+Actual Obj value at x_new:1.7163273084287864
+Predicted Obj value at x_new:1.7163190753806854
+Trust region contracted
+================
+Iteration number : 9
+x_old: 0.1000, 1.4211
+x_new: 0.1000, 1.4201
+LF Model Eval : 169
+HF Model Eval : 12
+Actual Obj value at x_old:1.7163273084287864
+Predicted Obj value at x_old:1.716320564456262
+Actual Obj value at x_new:1.7162871403774878
+Predicted Obj value at x_new:1.716323088029439
+Trust region contracted
