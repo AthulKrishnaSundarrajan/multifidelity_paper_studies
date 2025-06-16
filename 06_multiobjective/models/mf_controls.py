@@ -258,7 +258,7 @@ class MF_Turbine(object):
             param['time'] = [t0]
             param['dt']= dt
             param['blade_pitch'] = [bp0]
-            param['gen_torque'] = [19000]
+            param['gen_torque'] = [8000]
             param['t0'] = t0
             param['tf'] = tf 
             param['gen_speed_scaling'] = 1
@@ -360,7 +360,7 @@ class Level3_Turbine(object):
 
         else:
             dv = desvars
-        
+        print(dv)
         self.mf_turb.tune_and_write_files(dv)
         cruncher,_,_ = self.mf_turb.run_openfast(overwrite_flag = True)
         outputs = compute_outputs(cruncher)
@@ -386,7 +386,7 @@ class DFSM_Turbine(object):
 
         else:
             dv = desvars
-
+        print(dv)
         self.mf_turb.tune_and_write_files(dv)
         cruncher,_,_ = self.mf_turb.run_dfsm()
         outputs = compute_outputs(cruncher)

@@ -15,13 +15,13 @@ if __name__ == '__main__':
         from weis.glue_code.mpi_tools import map_comm_heirarchical,subprocessor_loop, subprocessor_stop
 
     bounds = np.array([[1.0, 3.0],[0.1,3.0]])
-    desvars = {'omega_pc' : np.array([2.0]),'zeta_pc':np.array([2.5])}
+    desvars = {'omega_pc' : np.array([2.5]),'zeta_pc':np.array([2.5])}
 
     # get path to this directory
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/test' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/nearrated_5' + os.sep + 'openfast_runs'
     wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
 
 
@@ -117,6 +117,8 @@ if __name__ == '__main__':
             p = om.Problem(model=om.Group(num_par_fd = 1),comm = comm_i,reports = False)
         else:
             p = om.Problem(model=om.Group())
+
+            
         model = p.model
         # model.approx_totals(method='fd', step=1e-3, form='central')
         comp = model.add_subsystem('Model', Model(desvars=desvars), promotes=['*'])

@@ -98,7 +98,7 @@ if __name__ == '__main__':
             bounds,
             disp=2,
             trust_radius=0.5,
-            num_initial_points=2,
+            num_initial_points=10,
             radius_tol = 1e-3,
             optimization_log = True,
             log_filename = 'MO_DEL_JMD_all.txt'

@@ -15,7 +15,7 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    fol = 'test'
+    fol = 'below_rated_p05'
     OF_dir = this_dir + os.sep + 'outputs/'+fol + os.sep + 'openfast_runs'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]

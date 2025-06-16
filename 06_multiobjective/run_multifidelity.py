@@ -6,7 +6,7 @@ from models.prod_functions import LFTurbine,HFTurbine
 from models.mf_controls import MF_Turbine,compute_outputs,valid_extension
 from weis.multifidelity.methods.trust_region import SimpleTrustRegion
 from weis.glue_code.mpi_tools import MPI
-import pickle
+import pickle,dill,copy
 import time as timer
 
 if __name__ == '__main__':
@@ -18,7 +18,7 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/test' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/below_rated_p05' + os.sep + 'openfast_runs'
     wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
@@ -83,11 +83,11 @@ if __name__ == '__main__':
             mpi_options = None
         
         mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
-        bounds = {'omega_pc' : np.array([[1, 3]]),'zeta_pc' : np.array([[0.10, 3.0]])}
-        desvars = {'omega_pc' : np.array([2.5]),'zeta_pc': np.array([2.5])}
-        scaling_dict = {'omega_pc':10}
+        bounds = {'omega_vs' : np.array([[1, 3]]),'zeta_vs' : np.array([[0.5, 3.0]])}
+        desvars = {'omega_vs' : np.array([2.5]),'zeta_vs': np.array([2.5])}
+        scaling_dict = {'omega_vs':10}
 
-        n_pts = 5
+        n_pts = 10
 
         objs = np.zeros((n_pts,2))
         opt_pts = np.zeros((n_pts,2))
@@ -98,23 +98,52 @@ if __name__ == '__main__':
         obj1 = 'TwrBsMyt_DEL'
         obj2 = 'GenSpeed_Std'
 
-        lf_warmstart_file = 'lf_ws_file.dill'
-        hf_warmstart_file = 'hf_ws_file.dill'
+        results_folder = OF_dir + os.sep + 'multi_fid_results_br'
+
+        if not os.path.exists(results_folder):
+            os.mkdir(results_folder)
+
+        lf_warmstart_file = OF_dir + os.sep +'lf_ws_file_oz_25.dill'
+        hf_warmstart_file = OF_dir + os.sep +'hf_ws_file_oz_25.dill'
 
         for i_pt in range(n_pts):
 
 
             multi_fid_dict = {'obj1':obj1,'obj2':obj2,'w1':w1[i_pt],'w2':w2[i_pt]}
 
+            lf_warmstart_file_iter = results_folder + os.sep+'multiobj_iter_lf_'+ str(i_pt)+'.dill'
+            hf_warmstart_file_iter = results_folder + os.sep+'multiobj_iter_hf_'+ str(i_pt)+'.dill'
 
-            model_low = LFTurbine(desvars,  mf_turb, scaling_dict = scaling_dict,multi_fid_dict=multi_fid_dict,warmstart_file = lf_warmstart_file)
-            model_high = HFTurbine(desvars, mf_turb, scaling_dict = scaling_dict,multi_fid_dict=multi_fid_dict, warmstart_file = hf_warmstart_file)
+            lf_warmstart_file_ = lf_warmstart_file
+            hf_warmstart_file_ = hf_warmstart_file
+
+
+            with open(lf_warmstart_file_,'rb') as handle:
+                lf_res = dill.load(handle)
+
+            with open(hf_warmstart_file_,'rb') as handle:
+                hf_res = dill.load(handle)
+
+            lf_res_iter = copy.deepcopy(lf_res)
+            hf_res_iter = copy.deepcopy(hf_res)
+
+            DV0 = np.array(hf_res['desvars'])[-1,:]
+            print(DV0)
             
-            for i in range(len(model_high.saved_outputs)):
-                model_high.saved_outputs[i]['wt_objectives'] = model_high.saved_outputs[i][obj1]*w1[i_pt] + model_high.saved_outputs[i][obj2]*w2[i_pt]
+            for i in range(len(lf_res_iter['outputs'])):
+                lf_res_iter['outputs'][i]['wt_objectives'] = lf_res_iter['outputs'][i][obj1]*w1[i_pt] + lf_res_iter['outputs'][i][obj2]*w2[i_pt]
 
-            for i in range(len(model_low.saved_outputs)):
-                model_low.saved_outputs[i]['wt_objectives'] = model_low.saved_outputs[i][obj1]*w1[i_pt] + model_low.saved_outputs[i][obj2]*w2[i_pt]
+            for i in range(len(hf_res_iter['outputs'])):
+                hf_res_iter['outputs'][i]['wt_objectives'] = hf_res_iter['outputs'][i][obj1]*w1[i_pt] + hf_res_iter['outputs'][i][obj2]*w2[i_pt]
+
+            with open(lf_warmstart_file_iter,'wb') as handle:
+                dill.dump(lf_res_iter,handle)
+
+            with open(hf_warmstart_file_iter,'wb') as handle:
+                dill.dump(hf_res_iter,handle)
+
+            model_low = LFTurbine(desvars,  mf_turb, scaling_dict = scaling_dict,multi_fid_dict=multi_fid_dict,warmstart_file = lf_warmstart_file_iter)
+            model_high = HFTurbine(desvars, mf_turb, scaling_dict = scaling_dict,multi_fid_dict=multi_fid_dict, warmstart_file = hf_warmstart_file_iter)
 
             np.random.seed(123)
 
@@ -124,19 +153,20 @@ if __name__ == '__main__':
                 bounds,
                 disp=2,
                 trust_radius=0.5,
-                num_initial_points=2,
+                num_initial_points=0,
                 radius_tol = 1e-3,
                 optimization_log = True,
-                log_filename = 'MO_DEL_STD_test'+str(i_pt)+'.txt'
+                log_filename = results_folder + os.sep +'MO_DEL_STD_'+str(i_pt)+'.txt'
             )
 
             trust_region.add_objective("wt_objectives", scaler = 1e-0)
+            trust_region.design_vectors = np.array(hf_res_iter['desvars'])
             #trust_region.add_constraint("GenSpeed_Max", upper=1.2)
-            #trust_region.set_initial_point(np.array([2.5,2.5]))
+            trust_region.set_initial_point(DV0)
 
 
             t1 = timer.time()
-            trust_region.optimize(plot=False, num_basinhop_iterations=0,num_iterations = 40)
+            trust_region.optimize(plot=False, num_basinhop_iterations=2,num_iterations = 40)
             t2 = timer.time()
 
             opt_pts[i_pt,:] = trust_region.design_vectors[-1,:]
@@ -144,16 +174,13 @@ if __name__ == '__main__':
             objs[i_pt,1] = trust_region.model_high.run(opt_pts[i_pt,:])[obj2]
 
             
-
-            
-
         fig,ax = plt.subplots(1)
 
         ax.plot(objs[:,0],objs[:,1],'.',markersize = 8)
         ax.set_xlabel(obj1)
         ax.set_ylabel(obj2)
 
-        fig.savefig('DELvsSTD.png')
+        fig.savefig(results_folder + os.sep +'DELvsSTD.png')
         print(objs)
         print(opt_pts)
 

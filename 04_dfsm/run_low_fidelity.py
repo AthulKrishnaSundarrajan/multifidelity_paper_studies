@@ -111,7 +111,11 @@ if __name__ == '__main__':
                 outputs['GenSpeed_Max'] = model_outputs['GenSpeed_Max']
             
             
-        p = om.Problem(model=om.Group(num_par_fd = 1),comm = comm_i,reports = False)
+        if MPI:
+            p = om.Problem(model=om.Group(num_par_fd = 1),comm = comm_i,reports = False)
+        else:
+            p = om.Problem(model=om.Group())
+            
         model = p.model
         # model.approx_totals(method='fd', step=1e-3, form='central')
         comp = model.add_subsystem('Model', Model(desvars=desvars), promotes=['*'])

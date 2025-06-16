@@ -5,6 +5,7 @@ from models.mf_controls import MF_Turbine,compute_outputs,valid_extension
 from models.prod_functions import LFTurbine,HFTurbine
 from weis.glue_code.mpi_tools import MPI
 import pickle
+from scipy.stats import qmc
 
 if __name__ == '__main__':
 
@@ -15,18 +16,20 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/test' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/below_rated_p05' + os.sep + 'openfast_runs'
     wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
     n_OF_runs = len(fst_files)
 
-    run_sens_study = False
+    run_sens_study = True
     
-    bounds = np.array([[0.10, 3.0],[0,-40]])
-    desvars = {'zeta_pc' : np.array([2]),'Kp_float': np.array([-9])}
-    npts = 5
-    
+    bounds = np.array([[1, 3],[0.4,3.0]])
+    desvars = {'omega_vs':np.array([2]),'zeta_vs' : np.array([2])}
+    npts = 25
+
+    n_dims = len(desvars.keys())
+
 
     if MPI:
         
@@ -84,10 +87,14 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=00,wind_dataset=wind_dataset)
+        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
+        scaling_dict = {'omega_vs':10}
 
-        model_low = LFTurbine(desvars,  mf_controls)
-        model_high = HFTurbine(desvars, mf_controls)
+        lf_warmstart_file = OF_dir + os.sep +'lf_ws_file_oz_25.dill'
+        hf_warmstart_file = OF_dir + os.sep +'hf_ws_file_oz_25.dill'
+
+        model_low = LFTurbine(desvars,  mf_controls, scaling_dict = scaling_dict, warmstart_file = lf_warmstart_file)
+        model_high = HFTurbine(desvars, mf_controls, scaling_dict = scaling_dict, warmstart_file = hf_warmstart_file)
 
         fig_fol = OF_dir + os.sep + 'plot_comp'
         if not os.path.exists(fig_fol):
@@ -95,7 +102,7 @@ if __name__ == '__main__':
 
         if run_sens_study:
 
-            n_samples = npts**2
+            n_samples = npts
 
             twrbsmyt_del = np.zeros((n_samples,2))
             pitch_travel = np.zeros((n_samples,2))
@@ -105,40 +112,45 @@ if __name__ == '__main__':
             ptfmpitch_std = np.zeros((n_samples,2))
             p_avg = np.zeros((n_samples,2))
 
-            omega_pc = np.linspace(bounds[0,0],bounds[0,1],npts)
-            zeta_pc = np.linspace(bounds[1,0],bounds[1,1],npts)
-            O,Z = np.meshgrid(omega_pc,zeta_pc)
+            if n_dims >1:
 
-            OZ = np.hstack([O,Z])
+                sampler = qmc.LatinHypercube(d=n_dims)
 
-            OZ = np.reshape(OZ,[n_samples,2],order = 'F')
+                x_raw = sampler.random(n = n_samples)
 
+                OZ = x_raw * (bounds[:, 1] - bounds[:, 0]) + bounds[:, 0]
 
+            else:
+                OZ = np.linspace(bounds[:, 0],bounds[:, 1],10)
+                print(OZ)
 
+            fig,ax = plt.subplots(1)
+
+            if n_dims == 2:
+                ax.plot(OZ[:,0],OZ[:,1],'.')
+            else:
+                ax.plot(OZ[:,0],'.')
+            fig.savefig('initial_points.png')
+
+            outputs_high = model_high.run_vec(OZ)
+            outputs_low = model_low.run_vec(OZ)
             
 
-            for ipt in range(n_samples):
-                dvar = {'zeta_pc':OZ[ipt,0],'Kp_float':OZ[ipt,1]}
+            twrbsmyt_del[:,0] = outputs_high['TwrBsMyt_DEL']
+            genspeed_max[:,0] = outputs_high['GenSpeed_Max']
+            pitch_travel[:,0] = outputs_high['avg_pitch_travel']
+            genspeed_std[:,0] = outputs_high['GenSpeed_Std']
+            ptfmpitch_max[:,0] = outputs_high['PtfmPitch_Max']
+            ptfmpitch_std[:,0] = outputs_high['PtfmPitch_Std']
+            p_avg[:,0] = outputs_high['P_avg']
 
-                print(dvar)
-                outputs_low = model_low.compute(dvar)
-                outputs_high = model_high.compute(dvar)
-
-                twrbsmyt_del[ipt,0] = outputs_high['TwrBsMyt_DEL']
-                genspeed_max[ipt,0] = outputs_high['GenSpeed_Max']
-                pitch_travel[ipt,0] = outputs_high['avg_pitch_travel']
-                genspeed_std[ipt,0] = outputs_high['GenSpeed_Std']
-                ptfmpitch_max[ipt,0] = outputs_high['PtfmPitch_Max']
-                ptfmpitch_std[ipt,0] = outputs_high['PtfmPitch_Std']
-                p_avg[ipt,0] = outputs_high['P_avg']
-
-                twrbsmyt_del[ipt,1] = outputs_low['TwrBsMyt_DEL']
-                genspeed_max[ipt,1] = outputs_low['GenSpeed_Max']
-                pitch_travel[ipt,1] = outputs_low['avg_pitch_travel']
-                genspeed_std[ipt,1] = outputs_low['GenSpeed_Std']
-                ptfmpitch_max[ipt,1] = outputs_low['PtfmPitch_Max']
-                ptfmpitch_std[ipt,1] = outputs_low['PtfmPitch_Std']
-                p_avg[ipt,1] = outputs_low['P_avg']
+            twrbsmyt_del[:,1] = outputs_low['TwrBsMyt_DEL']
+            genspeed_max[:,1] = outputs_low['GenSpeed_Max']
+            pitch_travel[:,1] = outputs_low['avg_pitch_travel']
+            genspeed_std[:,1] = outputs_low['GenSpeed_Std']
+            ptfmpitch_max[:,1] = outputs_low['PtfmPitch_Max']
+            ptfmpitch_std[:,1] = outputs_low['PtfmPitch_Std']
+            p_avg[:,1] = outputs_low['P_avg']
 
 
             print(model_high.n_count)
@@ -147,8 +159,8 @@ if __name__ == '__main__':
             
 
             results_dict = {'OZ':OZ,'twrbsmyt_del':twrbsmyt_del,'genspeed_max':genspeed_max,'pitch_travel':pitch_travel,'genspeed_std':genspeed_std,'ptfmpitch_max':ptfmpitch_max,'ptfmpitch_std':ptfmpitch_std,'P_avg':p_avg}
-            with open('sensstudy_results_ZK.pkl','wb') as handle:
-                pickle.dump(results_dict,handle)
+            # with open('sensstudy_results_iea22.pkl','wb') as handle:
+            #     pickle.dump(results_dict,handle)
                 
         else:
 

@@ -350,7 +350,7 @@ class Level3_Turbine(object):
             dv = {}
 
             for var in desvars.keys():
-                print(var)
+                
                 if var in scaling_dict.keys():
                     
                     dv[var] = desvars[var]/scaling_dict[var]
@@ -361,6 +361,7 @@ class Level3_Turbine(object):
         else:
             dv = desvars
         
+        print(dv)
         self.mf_turb.tune_and_write_files(dv)
         cruncher,_,_ = self.mf_turb.run_openfast(overwrite_flag = True)
         outputs = compute_outputs(cruncher)
@@ -378,14 +379,20 @@ class DFSM_Turbine(object):
 
         if not(scaling_dict == None):
 
-            dv = copy.copy(desvars)
+            dv = {}
 
             for var in desvars.keys():
+                
                 if var in scaling_dict.keys():
+                    
                     dv[var] = desvars[var]/scaling_dict[var]
+
+                else:
+                    dv[var] = desvars[var]
 
         else:
             dv = desvars
+        print(dv)
 
         self.mf_turb.tune_and_write_files(dv)
         cruncher,_,_ = self.mf_turb.run_dfsm()
