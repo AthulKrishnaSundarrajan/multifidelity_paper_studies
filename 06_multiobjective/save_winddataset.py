@@ -6,6 +6,8 @@ from models.prod_functions import LFTurbine,HFTurbine
 from weis.glue_code.mpi_tools import MPI
 import pickle
 
+from scipy.io import savemat
+
 if __name__ == '__main__':
 
     if MPI:
@@ -15,8 +17,9 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    fol = 'below_rated_p05'
+    fol = 'RM1_300'
     OF_dir = this_dir + os.sep + 'outputs/'+fol + os.sep + 'openfast_runs'
+    mhk = True
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
     n_OF_runs = len(fst_files)
@@ -56,15 +59,19 @@ if __name__ == '__main__':
     if rank == 0:
 
         # 1. DFSM file and the model detials
-        dfsm_file = this_dir + os.sep + 'dfsm_fowt_1p6.pkl'
+        dfsm_file = this_dir + os.sep + 'dfsm_mhk.pkl'
 
-        reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
-        reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
-        reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
-
+        # required states
+        reqd_states = ['PtfmPitch','PtfmHeave','GenSpeed']
         
+        # required controls
+        reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
+        
+        # required outputs
+        reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt']
+
         # 3. ROSCO yaml file
-        rosco_yaml = this_dir + os.sep + 'IEA-15-240-RWT-UMaineSemi_ROSCO.yaml'
+        rosco_yaml = this_dir + os.sep + 'RM1_MHK.rosco.yaml'
 
     if color_i == 0:
 
@@ -77,20 +84,25 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=00)
+        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=00,mhk = mhk)
 
+        
         fig_fol = OF_dir + os.sep + 'plot_comp'
         if not os.path.exists(fig_fol):
             os.mkdir(fig_fol)
 
+        if mhk:
+            nblades = 2
+        else:
+            nblades = 3
+
         cruncher_dfsm,ae_output_list_dfsm,chan_time_list_dfsm = mf_controls.run_dfsm()
 
-        outputs_dfsm = compute_outputs(cruncher_dfsm)
-        print(outputs_dfsm)
+        outputs_dfsm = compute_outputs(cruncher_dfsm,nblades)
 
         cruncher_of,ae_output_list_of,chan_time_list_of = mf_controls.run_openfast()
-        outputs_of = compute_outputs(cruncher_of)
-        print(outputs_of)
+        outputs_of = compute_outputs(cruncher_of,nblades)
+
 
         i_fig = 0
 
@@ -98,12 +110,34 @@ if __name__ == '__main__':
 
         wind_dataset = np.zeros((nt,n_OF_runs+1))
         wind_dataset[:,0] = chan_time_list_of[0]['Time']
+
+        OC_stuff = {}
+        dfsm = mf_controls.dfsm
+        OC_stuff['A_array'] = dfsm.A_array
+        OC_stuff['B_array'] = dfsm.B_array
+        OC_stuff['C_array'] = dfsm.C_array
+        OC_stuff['D_array'] = dfsm.D_array
+        OC_stuff['W'] = dfsm.W
+
+        
+        OC_stuff['Time'] = chan_time_list_of[0]['Time']
+
+        env_inputs = []
         
         for ct_of,ct_dfsm in zip(chan_time_list_of,chan_time_list_dfsm):
 
             channels = mf_controls.channels
 
             wind_dataset[:,i_fig+1] = ct_of['RtVAvgxh']
+            print(np.mean(ct_of['RtVAvgxh']))
+            case_stuff = {}
+            case_stuff['RtVAvgxh_of'] = ct_of['RtVAvgxh']
+            case_stuff['RtVAvgxh_dfsm'] = ct_dfsm['RtVAvgxh']
+            case_stuff['Wave1Elev'] = ct_dfsm['Wave1Elev']
+            case_stuff['w_mean'] = np.mean(ct_dfsm['RtVAvgxh'])
+
+            env_inputs.append(case_stuff)
+
 
             for chan in channels:
 
@@ -120,6 +154,10 @@ if __name__ == '__main__':
 
         with open(OF_dir + os.sep +'wind_dataset.pkl','wb') as handle:
             pickle.dump(wind_dataset,handle)
+
+        # OC_stuff['env_inputs'] = env_inputs
+        # matfilename = 'OC_stuff_mhk.mat'
+        # savemat(matfilename,OC_stuff)
 
     #---------------------------------------------------
     # More MPI stuff

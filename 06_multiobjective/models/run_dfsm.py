@@ -56,6 +56,11 @@ def run_serial(case_data_all):
         sim_results['case_no'] = case_data['case']
         sim_results['T_dfsm'] = t 
         sim_results['states_dfsm'] = x 
+
+        gs_ind = case_data['dfsm'].gen_speed_ind
+        gs_scale = case_data['param']['gen_speed_scaling']
+        x[:,gs_ind] = x[:,gs_ind]*gs_scale
+
         sim_results['controls_dfsm'] = u 
         sim_results['outputs_dfsm'] = y
 
@@ -108,6 +113,12 @@ def run_mpi(case_data_all,mpi_options):
         # store
         sim_results['case_no'] = icase
         sim_results['T_dfsm'] = t 
+        
+
+        gs_ind = case_data['dfsm'].gen_speed_ind
+        gs_scale = case_data['param']['gen_speed_scaling']
+        x[:,gs_ind] = x[:,gs_ind]*gs_scale
+
         sim_results['states_dfsm'] = x 
         sim_results['controls_dfsm'] = u 
         sim_results['outputs_dfsm'] = y

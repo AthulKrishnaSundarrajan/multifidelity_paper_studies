@@ -16,19 +16,19 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/below_rated_p05' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/RM1_300' + os.sep + 'openfast_runs'
     wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
     n_OF_runs = len(fst_files)
-
+    
     run_sens_study = True
     
-    bounds = np.array([[1, 3],[0.4,3.0]])
-    desvars = {'omega_vs':np.array([2]),'zeta_vs' : np.array([2])}
-    npts = 25
+    npts = 10
 
-    n_dims = len(desvars.keys())
+    mhk = True
+
+    sampling_type = 'LHC'
 
 
     if MPI:
@@ -44,6 +44,7 @@ if __name__ == '__main__':
         n_OF_runs_parallel = min([int(n_OF_runs), max_parallel_OF_runs])
 
         olaf = False
+
 
         # get mapping
         comm_map_down, comm_map_up, color_map = map_comm_heirarchical(n_FD, n_OF_runs_parallel)
@@ -64,17 +65,56 @@ if __name__ == '__main__':
         rank = 0
 
     if rank == 0:
-
-        # 1. DFSM file and the model detials
-        dfsm_file = this_dir + os.sep + 'dfsm_fowt_1p6.pkl'
-
-        reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
-        reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
-        reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
-
         
-        # 3. ROSCO yaml file
-        rosco_yaml = this_dir + os.sep + 'IEA-15-240-RWT-UMaineSemi_ROSCO.yaml'
+        if mhk:
+            # 1. DFSM file and the model detials
+            dfsm_file = this_dir + os.sep + 'dfsm_mhk.pkl'
+
+            with open(dfsm_file,'rb') as handle:
+                dfsm = pickle.load(handle) 
+
+            # required states
+            reqd_states = ['PtfmPitch','PtfmHeave','GenSpeed']
+            
+            # required controls
+            reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
+            
+            # required outputs
+            reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt'] 
+
+            
+            # 3. ROSCO yaml file
+            rosco_yaml = this_dir + os.sep + 'RM1_MHK.rosco.yaml'
+
+            bounds = np.array([[0.1, 1.5],[0.1,3.0],[0,4],[0,1]])
+            desvars = {'omega_pc':np.array([0.9]),'zeta_pc' : np.array([0.7]),'Kp_float':np.array([0.96]),'ptfm_freq':np.array([0.6613])}
+            scaling_dict = {'Kp_float':0.1}
+            n_dims = len(desvars.keys())
+
+            t_transition = 50
+
+
+        else:
+
+            # 1. DFSM file and the model detials
+            dfsm_file = this_dir + os.sep + 'dfsm_iea15_65.pkl'
+
+            reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
+            reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
+            reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
+
+            
+            # 3. ROSCO yaml file
+            rosco_yaml = this_dir + os.sep + 'IEA-15-240-RWT-UMaineSemi_ROSCO.yaml'
+
+            bounds = np.array([[1, 3],[0.6,3.0],[-4,0],[0,4]])
+            desvars = {'omega_pc':np.array([1]),'zeta_pc' : np.array([2.61]),'Kp_float':np.array([-4.9]),'ptfm_freq':np.array([0.2])}
+            scaling_dict = {'omega_pc':10,'Kp_float':0.1,'ptfm_freq':10}
+            n_dims = len(desvars.keys())
+
+            t_transition = 200
+
+    
 
     if color_i == 0:
 
@@ -87,22 +127,51 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
-        scaling_dict = {'omega_vs':10}
+        mf_controls = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,
+                                 transition_time=t_transition,wind_dataset=wind_dataset,mhk = mhk)
 
-        lf_warmstart_file = OF_dir + os.sep +'lf_ws_file_oz_25.dill'
-        hf_warmstart_file = OF_dir + os.sep +'hf_ws_file_oz_25.dill'
-
-        model_low = LFTurbine(desvars,  mf_controls, scaling_dict = scaling_dict, warmstart_file = lf_warmstart_file)
-        model_high = HFTurbine(desvars, mf_controls, scaling_dict = scaling_dict, warmstart_file = hf_warmstart_file)
-
-        fig_fol = OF_dir + os.sep + 'plot_comp'
+        fig_fol = OF_dir + os.sep + 'plot_comp2'
         if not os.path.exists(fig_fol):
             os.mkdir(fig_fol)
 
         if run_sens_study:
 
             n_samples = npts
+
+            lf_warmstart_file = OF_dir + os.sep +'lf_ws_file_LHC_4.dill'
+            hf_warmstart_file = OF_dir + os.sep +'hf_ws_file_LHC_4.dill'
+
+            model_low = LFTurbine(desvars,  mf_controls, scaling_dict = scaling_dict, warmstart_file = lf_warmstart_file)
+            #model_high = HFTurbine(desvars, mf_controls, scaling_dict = scaling_dict, warmstart_file = hf_warmstart_file)
+
+            if n_dims >1:
+
+                if sampling_type == 'fullfact':
+                    n_samples = 6
+
+                    o = np.linspace(bounds[0,0],bounds[0,1],n_samples)
+                    z = np.linspace(bounds[1,0],bounds[1,1],n_samples)
+
+                    n_samples = n_samples**2
+
+                    O,Z = np.meshgrid(o,z)
+
+                    OZ = np.hstack([O,Z])
+
+                    OZ = np.reshape(OZ,[n_samples,2],order = 'F')
+               
+                else:
+                    sampler = qmc.LatinHypercube(d=n_dims)
+
+                    x_raw = sampler.random(n = n_samples)
+
+                    OZ = x_raw * (bounds[:, 1] - bounds[:, 0]) + bounds[:, 0]
+
+                    print(OZ)
+
+            else:
+                OZ = np.linspace(bounds[:, 0],bounds[:, 1],10)
+                print(OZ)
 
             twrbsmyt_del = np.zeros((n_samples,2))
             pitch_travel = np.zeros((n_samples,2))
@@ -112,37 +181,26 @@ if __name__ == '__main__':
             ptfmpitch_std = np.zeros((n_samples,2))
             p_avg = np.zeros((n_samples,2))
 
-            if n_dims >1:
-
-                sampler = qmc.LatinHypercube(d=n_dims)
-
-                x_raw = sampler.random(n = n_samples)
-
-                OZ = x_raw * (bounds[:, 1] - bounds[:, 0]) + bounds[:, 0]
-
-            else:
-                OZ = np.linspace(bounds[:, 0],bounds[:, 1],10)
-                print(OZ)
 
             fig,ax = plt.subplots(1)
 
             if n_dims == 2:
                 ax.plot(OZ[:,0],OZ[:,1],'.')
-            else:
+            elif n_dims == 1:
                 ax.plot(OZ[:,0],'.')
             fig.savefig('initial_points.png')
 
-            outputs_high = model_high.run_vec(OZ)
+            #outputs_high = model_high.run_vec(OZ)
             outputs_low = model_low.run_vec(OZ)
             
 
-            twrbsmyt_del[:,0] = outputs_high['TwrBsMyt_DEL']
-            genspeed_max[:,0] = outputs_high['GenSpeed_Max']
-            pitch_travel[:,0] = outputs_high['avg_pitch_travel']
-            genspeed_std[:,0] = outputs_high['GenSpeed_Std']
-            ptfmpitch_max[:,0] = outputs_high['PtfmPitch_Max']
-            ptfmpitch_std[:,0] = outputs_high['PtfmPitch_Std']
-            p_avg[:,0] = outputs_high['P_avg']
+            # twrbsmyt_del[:,0] = outputs_high['TwrBsMyt_DEL']
+            # genspeed_max[:,0] = outputs_high['GenSpeed_Max']
+            # pitch_travel[:,0] = outputs_high['avg_pitch_travel']
+            # genspeed_std[:,0] = outputs_high['GenSpeed_Std']
+            # ptfmpitch_max[:,0] = outputs_high['PtfmPitch_Max']
+            # ptfmpitch_std[:,0] = outputs_high['PtfmPitch_Std']
+            # p_avg[:,0] = outputs_high['P_avg']
 
             twrbsmyt_del[:,1] = outputs_low['TwrBsMyt_DEL']
             genspeed_max[:,1] = outputs_low['GenSpeed_Max']
@@ -153,24 +211,29 @@ if __name__ == '__main__':
             p_avg[:,1] = outputs_low['P_avg']
 
 
-            print(model_high.n_count)
+            #print(model_high.n_count)
             print(model_low.n_count)
             print(twrbsmyt_del)
             
 
-            results_dict = {'OZ':OZ,'twrbsmyt_del':twrbsmyt_del,'genspeed_max':genspeed_max,'pitch_travel':pitch_travel,'genspeed_std':genspeed_std,'ptfmpitch_max':ptfmpitch_max,'ptfmpitch_std':ptfmpitch_std,'P_avg':p_avg}
+            #results_dict = {'OZ':OZ,'twrbsmyt_del':twrbsmyt_del,'genspeed_max':genspeed_max,'pitch_travel':pitch_travel,'genspeed_std':genspeed_std,'ptfmpitch_max':ptfmpitch_max,'ptfmpitch_std':ptfmpitch_std,'P_avg':p_avg}
             # with open('sensstudy_results_iea22.pkl','wb') as handle:
             #     pickle.dump(results_dict,handle)
                 
         else:
 
+            if mhk:
+                nb = 2
+            else:
+                nb = 3
+
             cruncher_dfsm,ae_output_list_dfsm,chan_time_list_dfsm = mf_controls.run_dfsm()
 
-            outputs_dfsm = compute_outputs(cruncher_dfsm)
+            outputs_dfsm = compute_outputs(cruncher_dfsm,nb)
             print(outputs_dfsm)
 
             cruncher_of,ae_output_list_of,chan_time_list_of = mf_controls.run_openfast()
-            outputs_of = compute_outputs(cruncher_of)
+            outputs_of = compute_outputs(cruncher_of,nb)
             print(outputs_of)
 
             i_fig = 0

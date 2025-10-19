@@ -9,6 +9,17 @@ from weis.glue_code.mpi_tools import MPI
 import pickle,dill,copy
 import time as timer
 
+plt.rcParams['font.family'] = 'DeJavu Serif'
+plt.rcParams['font.serif'] = ['Times New Roman']
+
+# plot properties
+markersize = 10
+linewidth = 1.5
+fontsize_legend = 16
+fontsize_axlabel = 18
+fontsize_tick = 15
+format = '.pdf'
+
 if __name__ == '__main__':
 
     if MPI:
@@ -18,8 +29,9 @@ if __name__ == '__main__':
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # 2. OpenFAST directory that has all the required files to run an OpenFAST simulations
-    OF_dir = this_dir + os.sep + 'outputs/below_rated_p05' + os.sep + 'openfast_runs'
+    OF_dir = this_dir + os.sep + 'outputs/RM1_300' + os.sep + 'openfast_runs'
     wind_dataset = OF_dir + os.sep + 'wind_dataset.pkl'
+    mhk = True
 
     fst_files = [os.path.join(OF_dir,f) for f in os.listdir(OF_dir) if valid_extension(f,'*.fst')]
 
@@ -60,16 +72,54 @@ if __name__ == '__main__':
 
     if rank == 0:
 
-        # 1. DFSM file and the model detials
-        dfsm_file = this_dir + os.sep + 'dfsm_fowt_1p6.pkl'
+        if mhk:
+            # 1. DFSM file and the model detials
+            dfsm_file = this_dir + os.sep + 'dfsm_mhk.pkl'
 
-        reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
-        reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
-        reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
+            with open(dfsm_file,'rb') as handle:
+                dfsm = pickle.load(handle) 
 
-        
-        # 3. ROSCO yaml file
-        rosco_yaml = this_dir + os.sep + 'IEA-15-240-RWT-UMaineSemi_ROSCO.yaml'
+            # required states
+            reqd_states = ['PtfmPitch','PtfmHeave','GenSpeed']
+            
+            # required controls
+            reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
+            
+            # required outputs
+            reqd_outputs = ['TwrBsFxt','TwrBsMyt','YawBrTAxp','NcIMURAys','GenPwr','RtFldCp','RtFldCt'] 
+
+            
+            # 3. ROSCO yaml file
+            rosco_yaml = this_dir + os.sep + 'RM1_MHK.rosco.yaml'
+
+            bounds = {'omega_pc' : np.array([0.1, 1.5]),'zeta_pc' : np.array([0.1,3.0]),'Kp_float': np.array([0,4]),'ptfm_freq':np.array([0,1])}
+            desvars = {'omega_pc':np.array([0.9]),'zeta_pc' : np.array([0.7]),'Kp_float':np.array([0.96]),'ptfm_freq':np.array([0.6613])}
+            scaling_dict = {'Kp_float':0.1}
+            nvar = len(desvars.keys())
+
+            t_transition = 50
+
+
+        else:
+
+            # 1. DFSM file and the model detials
+            dfsm_file = this_dir + os.sep + 'dfsm_iea15_65.pkl'
+
+            reqd_states = ['PtfmSurge','PtfmPitch','TTDspFA','GenSpeed']
+            reqd_controls = ['RtVAvgxh','GenTq','BldPitch1','Wave1Elev']
+            reqd_outputs = ['TwrBsFxt','TwrBsMyt','GenPwr','YawBrTAxp','NcIMURAys','RtFldCp','RtFldCt']
+
+            
+            # 3. ROSCO yaml file
+            rosco_yaml = this_dir + os.sep + 'IEA-15-240-RWT-UMaineSemi_ROSCO.yaml'
+
+            bounds = np.array([[1, 3],[0.6,3.0],[-4,0],[0,4]])
+            bounds = {'omega_pc' : np.array([1, 3]),'zeta_pc' : np.array([0.6,3.0]),'Kp_float': np.array([-4,0]),'ptfm_freq':np.array([0,4])}
+            desvars = {'omega_pc':np.array([1]),'zeta_pc' : np.array([2.61]),'Kp_float':np.array([-4.9]),'ptfm_freq':np.array([0.2])}
+            scaling_dict = {'omega_pc':10,'Kp_float':0.1,'ptfm_freq':10}
+            nvar = len(desvars.keys())
+
+            t_transition = 200
 
     if color_i == 0:
 
@@ -82,91 +132,179 @@ if __name__ == '__main__':
 
             mpi_options = None
         
-        mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=200,wind_dataset=wind_dataset)
-        bounds = {'omega_vs' : np.array([[1, 3]]),'zeta_vs' : np.array([[0.5, 3.0]])}
-        desvars = {'omega_vs' : np.array([2.5]),'zeta_vs': np.array([2.5])}
-        scaling_dict = {'omega_vs':10}
+        mf_turb = MF_Turbine(dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,mpi_options=mpi_options,transition_time=t_transition,wind_dataset=wind_dataset,mhk = mhk)
+        nvar = len(desvars.keys());print(nvar)
 
-        n_pts = 10
-
-        objs = np.zeros((n_pts,2))
-        opt_pts = np.zeros((n_pts,2))
-
-        w1 = np.linspace(1,0,n_pts)
-        w2 = 1-w1
+        # w1 = np.linspace(1,0,n_pts)
+        # w2 = 1-w1
 
         obj1 = 'TwrBsMyt_DEL'
         obj2 = 'GenSpeed_Std'
 
-        results_folder = OF_dir + os.sep + 'multi_fid_results_br'
+        results_folder = OF_dir + os.sep + 'multi_fid_results_4var_cobyla2'
+
+        lf_results_folder = OF_dir + os.sep + 'low_fid_results_4var'
+
+        use_lf_results = False
+        use_prev_pt = False
+
+        if use_lf_results:
+            lf_results_file = lf_results_folder + os.sep +'lf_results.pkl'
+
+            with open(lf_results_file,'rb') as handle:
+                lf_results = pickle.load(handle)
+
+            opt_pts_lf = lf_results['opt_pts']
+            w1 = lf_results['w1']
+            w2 = lf_results['w2']
+
+            n_pts = len(w1)
+
+        else:
+            n_pts = 10
+            dt_ = 1/n_pts
+
+            w2 = np.linspace(0,1,n_pts)
+            w1 = 1-w2
+
+        objs = np.zeros((n_pts,2))
+        opt_pts = np.zeros((n_pts,nvar))
 
         if not os.path.exists(results_folder):
             os.mkdir(results_folder)
 
-        lf_warmstart_file = OF_dir + os.sep +'lf_ws_file_oz_25.dill'
-        hf_warmstart_file = OF_dir + os.sep +'hf_ws_file_oz_25.dill'
+        lf_warmstart_file = OF_dir + os.sep +'lf_ws_file_LHC_4.dill'
+        hf_warmstart_file = OF_dir + os.sep +'hf_ws_file_LHC_4.dill'
 
         for i_pt in range(n_pts):
 
+            if mhk:
+                multi_fid_dict = {'obj1':obj1,'obj2':obj2,'w1':w1[i_pt],'w2':w2[i_pt]}
+                lf_warmstart_file_iter = results_folder + os.sep+'multiobj_iter_lf_'+ str(i_pt)+'.dill'
+                hf_warmstart_file_iter = results_folder + os.sep+'multiobj_iter_hf_'+ str(i_pt)+'.dill'
 
-            multi_fid_dict = {'obj1':obj1,'obj2':obj2,'w1':w1[i_pt],'w2':w2[i_pt]}
-
-            lf_warmstart_file_iter = results_folder + os.sep+'multiobj_iter_lf_'+ str(i_pt)+'.dill'
-            hf_warmstart_file_iter = results_folder + os.sep+'multiobj_iter_hf_'+ str(i_pt)+'.dill'
-
-            lf_warmstart_file_ = lf_warmstart_file
-            hf_warmstart_file_ = hf_warmstart_file
+                lf_warmstart_file_ = lf_warmstart_file
+                hf_warmstart_file_ = hf_warmstart_file
 
 
-            with open(lf_warmstart_file_,'rb') as handle:
-                lf_res = dill.load(handle)
+                with open(lf_warmstart_file_,'rb') as handle:
+                    lf_res = dill.load(handle)
 
-            with open(hf_warmstart_file_,'rb') as handle:
-                hf_res = dill.load(handle)
+                with open(hf_warmstart_file_,'rb') as handle:
+                    hf_res = dill.load(handle)
 
-            lf_res_iter = copy.deepcopy(lf_res)
-            hf_res_iter = copy.deepcopy(hf_res)
+                lf_res_iter = copy.deepcopy(lf_res)
+                hf_res_iter = copy.deepcopy(hf_res)
 
-            DV0 = np.array(hf_res['desvars'])[-1,:]
-            print(DV0)
-            
-            for i in range(len(lf_res_iter['outputs'])):
-                lf_res_iter['outputs'][i]['wt_objectives'] = lf_res_iter['outputs'][i][obj1]*w1[i_pt] + lf_res_iter['outputs'][i][obj2]*w2[i_pt]
+                DV0 = np.array(hf_res['desvars'])[-1,:]
 
-            for i in range(len(hf_res_iter['outputs'])):
-                hf_res_iter['outputs'][i]['wt_objectives'] = hf_res_iter['outputs'][i][obj1]*w1[i_pt] + hf_res_iter['outputs'][i][obj2]*w2[i_pt]
+                print(DV0)
 
-            with open(lf_warmstart_file_iter,'wb') as handle:
-                dill.dump(lf_res_iter,handle)
+                
+                for i in range(len(lf_res_iter['outputs'])):
+                    lf_res_iter['outputs'][i]['wt_objectives'] = lf_res_iter['outputs'][i][obj1]*w1[i_pt] + lf_res_iter['outputs'][i][obj2]*w2[i_pt]
 
-            with open(hf_warmstart_file_iter,'wb') as handle:
-                dill.dump(hf_res_iter,handle)
+                for i in range(len(hf_res_iter['outputs'])):
+                    hf_res_iter['outputs'][i]['wt_objectives'] = hf_res_iter['outputs'][i][obj1]*w1[i_pt] + hf_res_iter['outputs'][i][obj2]*w2[i_pt]
+
+                with open(lf_warmstart_file_iter,'wb') as handle:
+                    dill.dump(lf_res_iter,handle)
+
+                with open(hf_warmstart_file_iter,'wb') as handle:
+                    dill.dump(hf_res_iter,handle)
+
+
+                num_init_pts = 0
+
+            else:
+                multi_fid_dict = {'obj1':obj1,'obj2':obj2,'w1':w1[i_pt],'w2':w2[i_pt]}
+
+                lf_warmstart_file_iter = results_folder + os.sep+'multiobj_iter_lf_'+ str(i_pt)+'.dill'
+                hf_warmstart_file_iter = results_folder + os.sep+'multiobj_iter_hf_'+ str(i_pt)+'.dill'
+
+                lf_warmstart_file_ = lf_warmstart_file
+                hf_warmstart_file_ = hf_warmstart_file
+
+
+                with open(lf_warmstart_file_,'rb') as handle:
+                    lf_res = dill.load(handle)
+
+                with open(hf_warmstart_file_,'rb') as handle:
+                    hf_res = dill.load(handle)
+
+                lf_res_iter = copy.deepcopy(lf_res)
+                hf_res_iter = copy.deepcopy(hf_res)
+
+                DV0 = np.array(hf_res['desvars'])[-1,:]
+
+                
+                for i in range(len(lf_res_iter['outputs'])):
+                    lf_res_iter['outputs'][i]['wt_objectives'] = lf_res_iter['outputs'][i][obj1]*w1[i_pt] + lf_res_iter['outputs'][i][obj2]*w2[i_pt]
+
+                for i in range(len(hf_res_iter['outputs'])):
+                    hf_res_iter['outputs'][i]['wt_objectives'] = hf_res_iter['outputs'][i][obj1]*w1[i_pt] + hf_res_iter['outputs'][i][obj2]*w2[i_pt]
+
+                with open(lf_warmstart_file_iter,'wb') as handle:
+                    dill.dump(lf_res_iter,handle)
+
+                with open(hf_warmstart_file_iter,'wb') as handle:
+                    dill.dump(hf_res_iter,handle)
+
+                num_init_pts = 0
+
+
+            np.random.seed(123)
 
             model_low = LFTurbine(desvars,  mf_turb, scaling_dict = scaling_dict,multi_fid_dict=multi_fid_dict,warmstart_file = lf_warmstart_file_iter)
             model_high = HFTurbine(desvars, mf_turb, scaling_dict = scaling_dict,multi_fid_dict=multi_fid_dict, warmstart_file = hf_warmstart_file_iter)
 
-            np.random.seed(123)
-
             trust_region = SimpleTrustRegion(
                 model_low,
                 model_high,
-                bounds,
+                bounds = bounds,
                 disp=2,
                 trust_radius=0.5,
-                num_initial_points=0,
-                radius_tol = 1e-3,
+                num_initial_points=num_init_pts,
+                radius_tol = 1e-2,
                 optimization_log = True,
                 log_filename = results_folder + os.sep +'MO_DEL_STD_'+str(i_pt)+'.txt'
             )
 
-            trust_region.add_objective("wt_objectives", scaler = 1e-0)
-            trust_region.design_vectors = np.array(hf_res_iter['desvars'])
-            #trust_region.add_constraint("GenSpeed_Max", upper=1.2)
-            trust_region.set_initial_point(DV0)
+            if mhk:
+
+                
+                trust_region.add_objective("wt_objectives", scaler = 1e-0)
+                trust_region.design_vectors = np.array(hf_res_iter['desvars'])
+                trust_region.set_initial_point(np.array([0.9,0.7,0.96,0.66]))
+
+
+
+            else:
+
+                trust_region.design_vectors = np.array(hf_res_iter['desvars'])
+                trust_region.add_objective("wt_objectives", scaler = 1e-0)
+
+
+                if use_lf_results:
+                    init_pt = opt_pts_lf[i_pt,:]
+
+                    for i,key in enumerate(desvars.keys()):
+                        if key in scaling_dict:
+                            init_pt[i] = init_pt[i]*scaling_dict[key]
+
+                    print(init_pt)
+                    trust_region.set_initial_point(init_pt)
+
+                else:
+
+                    if use_prev_pt and i_pt > 0:
+                        trust_region.set_initial_point(opt_pts[i_pt-1,:])
+                    else:
+                        trust_region.set_initial_point(np.array([0.9,0.7,0.96,0.66]))
 
 
             t1 = timer.time()
-            trust_region.optimize(plot=False, num_basinhop_iterations=2,num_iterations = 40)
+            trust_region.optimize(plot=False, num_basinhop_iterations=0,num_iterations = 40)
             t2 = timer.time()
 
             opt_pts[i_pt,:] = trust_region.design_vectors[-1,:]
@@ -174,16 +312,14 @@ if __name__ == '__main__':
             objs[i_pt,1] = trust_region.model_high.run(opt_pts[i_pt,:])[obj2]
 
             
-        fig,ax = plt.subplots(1)
+        fig,ax = plt.subplots()
+        ax.plot(objs[:,0],objs[:,1],'.',color = 'k',markersize = markersize)
+        ax.set_xlabel(obj1,fontsize = fontsize_axlabel)
+        ax.set_ylabel(obj2,fontsize = fontsize_axlabel)
+        ax.tick_params(labelsize=fontsize_tick)
+        ax.grid()
 
-        ax.plot(objs[:,0],objs[:,1],'.',markersize = 8)
-        ax.set_xlabel(obj1)
-        ax.set_ylabel(obj2)
-
-        fig.savefig(results_folder + os.sep +'DELvsSTD.png')
-        print(objs)
-        print(opt_pts)
-
+        fig.savefig(results_folder + os.sep +'DELvsSTD.pdf')
 
 
 

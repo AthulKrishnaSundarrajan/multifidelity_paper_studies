@@ -54,7 +54,7 @@ def compute_rot_avg(u,y,z,t,R,HubHt):
     for i in range(3):
         u_      = u[i,:,:,:]
         yy, zz = np.meshgrid(y,z)
-        rotor_ind = np.sqrt(yy**2 + (zz - HubHt)**2) < R
+        rotor_ind = np.sqrt(yy**2 + (zz - np.abs(HubHt))**2) < R
 
         u_rot = []
         for u_plane in u_:
@@ -74,12 +74,13 @@ class MF_Turbine(object):
 
     '''
 
-    def __init__(self,dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,ode_method = 'RK4',transition_time = 0,mpi_options = None,wind_dataset = None):
+    def __init__(self,dfsm_file,reqd_states,reqd_controls,reqd_outputs,OF_dir,rosco_yaml,ode_method = 'RK4',transition_time = 0,mpi_options = None,wind_dataset = None,mhk = False):
 
 
         self.dfsm_file = dfsm_file
         self.ode_method = ode_method
         self.transition_time = transition_time
+        self.mhk = mhk
 
         # save openfast directory
         self.OF_dir = OF_dir
@@ -174,7 +175,11 @@ class MF_Turbine(object):
 
             for qty in desvars.keys(): 
                 
-                controller_params[qty] = desvars[qty]
+                if qty == 'ptfm_freq':
+                
+                    controller_params[qty] = desvars[qty][0]
+                else:
+                    controller_params[qty] = desvars[qty]
         
         discon_files = self.discon_files
         cp_files = self.cp_files
@@ -258,10 +263,16 @@ class MF_Turbine(object):
             param['time'] = [t0]
             param['dt']= dt
             param['blade_pitch'] = [bp0]
-            param['gen_torque'] = [8000]
+            #param['gen_torque'] = [8000]
             param['t0'] = t0
             param['tf'] = tf 
-            param['gen_speed_scaling'] = 1
+
+            if self.mhk:
+                param['gen_speed_scaling'] = 100
+                param['gen_torque'] = [8]
+            else:
+                param['gen_speed_scaling'] = 1
+                param['gen_torque'] = [8000]
             param['lib_name'] = discon_lib_path
             param['num_blade'] = n_blades
             param['ny'] = self.ny
@@ -301,7 +312,7 @@ class MF_Turbine(object):
             t_wind = self.wind_dataset[:,0]
             u_h = self.wind_dataset[:,i_case+1]
 
-
+        
         wind_fun = CubicSpline(t_wind,u_h)
 
         # Load data from the file
@@ -342,6 +353,7 @@ class Level3_Turbine(object):
     
     def __init__(self,mf_turb):
         self.mf_turb = mf_turb
+        self.mhk = mf_turb.mhk
 
     def compute(self,desvars,scaling_dict):
         
@@ -363,7 +375,11 @@ class Level3_Turbine(object):
         print(dv)
         self.mf_turb.tune_and_write_files(dv)
         cruncher,_,_ = self.mf_turb.run_openfast(overwrite_flag = True)
-        outputs = compute_outputs(cruncher)
+        if self.mhk:
+            nblades = 2
+        else:
+            nblades = 3
+        outputs = compute_outputs(cruncher,nblades)
 
         return outputs
 
@@ -373,6 +389,8 @@ class DFSM_Turbine(object):
 
     def __init__(self,mf_turb):
         self.mf_turb        = mf_turb
+        self.mhk = mf_turb.mhk
+       
 
     def compute(self,desvars,scaling_dict):
 
@@ -389,21 +407,39 @@ class DFSM_Turbine(object):
         print(dv)
         self.mf_turb.tune_and_write_files(dv)
         cruncher,_,_ = self.mf_turb.run_dfsm()
-        outputs = compute_outputs(cruncher)
+
+        if self.mhk:
+            nblades = 2
+        else:
+            nblades = 3
+        outputs = compute_outputs(cruncher,nblades)
 
         return outputs
 
 def compute_outputs(cruncher,nblades = 3,tstart = 0):
-    
-    prob = cruncher.prob
-    n_cases = len(prob)
 
+    if nblades <3:
+        curr = np.array(cruncher.summary_stats['RtVAvgxh']['mean'])
+        speed = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6])
+        probability = np.array([0.176358711313469, 0.225347242233877, 0.233415941444297, 0.231686934470636, 0.210362515128811, 0.213820529076134, 0.240331969338943, 0.228228920523313, 0.245518990259927, 0.245518990259927, 0.253011353812460, 0.275488444470059, 0.293354849864562, 0.327934989337790, 0.352717422626938, 0.374041841968762, 0.391908247363264, 0.447812806178319, 0.501412022361823, 0.577488329202929, 0.566537951703071, 0.586709699729122, 0.515244078151115, 0.510633392888018, 0.442625785257335, 0.383839548152844, 0.301423549074981, 0.262809059996542, 0.169442683418823, 0.0829923347357504, 0.0547518874992795, 0.0443778456573108, 0.0190190767102761, 0.00806869921042014, 0.00403434960521009, 0.00172900697366146])
+        prob = np.interp(curr,speed,probability)
+
+        gs_scaler = 613
+        del_scaler = 1e-3
+    else:
+        prob = cruncher.prob
+        gs_scaler = 7.5
+        del_scaler = 1e-5
+
+    n_cases = len(prob)
+    print(prob)
+    
     # save outputs
     
     if n_cases == 1:
         outputs = {}
-        outputs['TwrBsMyt_DEL']     = cruncher.dels['TwrBsMyt'].iloc[0]*1e-5
-        outputs['GenSpeed_Max']     = cruncher.summary_stats['GenSpeed']['max'].iloc[0]/7.5
+        outputs['TwrBsMyt_DEL']     = cruncher.dels['TwrBsMyt'].iloc[0]*del_scaler
+        outputs['GenSpeed_Max']     = cruncher.summary_stats['GenSpeed']['max'].iloc[0]/gs_scaler
         outputs['GenSpeed_Std']     = cruncher.summary_stats['GenSpeed']['std'].iloc[0]
         outputs['P_avg'] = cruncher.summary_stats['GenPwr']['mean'].iloc[0]
         outputs['PtfmPitch_Std'] = cruncher.summary_stats['PtfmPitch']['std'].iloc[0]
@@ -412,8 +448,8 @@ def compute_outputs(cruncher,nblades = 3,tstart = 0):
     else:
 
         outputs = {}
-        outputs['TwrBsMyt_DEL'] = np.sum(np.array(cruncher.dels['TwrBsMyt'])*prob)*1e-5
-        outputs['GenSpeed_Max'] = np.max(np.array(cruncher.summary_stats['GenSpeed']['max']))/7.5
+        outputs['TwrBsMyt_DEL'] = np.sum(np.array(cruncher.dels['TwrBsMyt'])*prob)*del_scaler
+        outputs['GenSpeed_Max'] = np.max(np.array(cruncher.summary_stats['GenSpeed']['max']))/gs_scaler
         outputs['GenSpeed_Std']     = np.mean(np.array(cruncher.summary_stats['GenSpeed']['std']))
         outputs['P_avg'] = np.sum(np.array(cruncher.summary_stats['GenPwr']['mean'])*prob)
         outputs['PtfmPitch_Std']     = np.mean(np.array(cruncher.summary_stats['PtfmPitch']['std']))
